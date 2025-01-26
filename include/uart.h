@@ -9,43 +9,34 @@
  * (See the LICENSE file)
  */
 
-#ifndef	DCFW_INCLUDE_UART_H_
-#define	DCFW_INCLUDE_UART_H_
+#ifndef DCFW_INCLUDE_UART_H_
+#define DCFW_INCLUDE_UART_H_
 
 #include <Arduino.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-
 /**
- * This is an arduino Stream compatable abstraction of
- * our software UART implementation.
- * 
- * It has one main quirk: In the DayCounter circuit, the GPIO
- * we're using for TX is also being used as the SET button
- * input whenever we're not transmitting. So the @ref write
- * function needs to configure the pin as an output and then
- * back to being an input.
+ * The character that has been received from the soft UART.
+ * Effectively a single-byte buffer. Once set, it will not
+ * be overwritten until swuart_rx_char is reset to '\0'.
  */
-class DayCounterSWUART : public Stream {
- public:
-    void begin();
-    virtual int available() override;
-    virtual int peek() override;
-    virtual int read() override;
-    virtual size_t write(uint8_t ch) override;
+extern volatile char swuart_rx_char;
 
-    /**
-     * Multi-byte write implementation saves time by not having
-     * to change the tx pin mode back and forth.
-     */
-    virtual size_t write(const uint8_t* buffer, size_t size) override;
-    virtual void flush() override {};
-};
 
-extern DayCounterSWUART sw_uart;
+// Sets up the software UART by configuring the Analog Comparator and
+// calling swuart_mode_rx.
+void setup_swuart();
 
-extern volatile bool got_rx;
+// Configures UART pin as input, sets up pin's interrupts.
+void swuart_mode_rx();
+
+// Configures UART pin as output, disables pin's interrupts.
+void swuart_mode_tx();
+
+void swuart_write(char out);
+void swuart_write(const char* out);
+void swuart_write(const __FlashStringHelper* fptr);
 
 #endif  // DCFW_INCLUDE_UART_H_

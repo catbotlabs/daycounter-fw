@@ -13,6 +13,29 @@
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <avr/cpufunc.h>
+#include <avr/pgmspace.h>
+
+#include "globals.h"
+
+/**
+ * TX and RX functionality are shared on PA2.
+ * -------------------------------
+ * 
+ *                           [SECONDARY STATE]
+ *  [PA2] ---------------->  TX (from MCU)
+ *             | 
+ *            |=|  (resistor)
+ *            |=|
+ *             |
+ *             -----------<  RX (to MCU)
+ *                           [DEFAULT STATE]
+ * 
+ * 
+ * The shared lines will cause echoing back to the source.
+ * Our interface will only require single-character commands
+ * so this isn't a big deal.
+ * 
+ */
 
 /* ============================================================
 
@@ -55,16 +78,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 
-#ifndef UART_BAUDRATE
-// 19200 was too slow for this implementation running at 8MHz.
-// 115200 is too fast to work reliably without calibrating the oscillator.
+// [19200 was too slow for this implementation running at 8MHz.]
+// [115200 is too fast to work reliably without calibrating the oscillator.]
 #define UART_BAUDRATE 57600
-#endif
-
-#define PIN_TX PA1  // TX pin is shared with the SET button pin.
-#define PIN_RX PA2  // Use PA2 because it has AIN1 for interrupt.
-// TX PIN: PA1
-// RX PIN: PA2
 
 #define	TXDELAY         	(int)(((F_CPU/UART_BAUDRATE)-7 +1.5)/3)
 #define RXDELAY         	(int)(((F_CPU/UART_BAUDRATE)-5 +1.5)/3)
@@ -103,161 +119,105 @@ __attribute__((always_inline)) inline uint8_t rx_byte_sw_uart() {
     return rxbyte;
 }
 
-/// It's assumed that interrupts are disabled within this context.
 void tx_byte_sw_uart(uint8_t txbyte) {
-    __asm volatile(
-        " cbi %[uart_port], %[uart_pin] \n\t" // start bit
-        " in r0, %[uart_port] \n\t"
-        " ldi r30, 3 \n\t" // stop bit + idle state
-        " ldi r28, %[txdelay] \n\t"
-        "TxLoop%=: \n\t"
-        // 8 cycle loop + delay - total = 7 + 3*r22
-        " mov r29, r28 \n\t"
-        "TxDelay%=: \n\t"
-        // delay (3 cycle * delayCount) - 1
-        " dec r29 \n\t"
-        " brne TxDelay%= \n\t"
-        " bst %[ch], 0 \n\t"
-        " bld r0, %[uart_pin] \n\t"
-        " lsr r30 \n\t"
-        " ror %[ch] \n\t"
-        " out %[uart_port], r0 \n\t"
-        " brne TxLoop%= \n\t"
-        :
-        : [uart_port] "I" (_SFR_IO_ADDR(PORTA)),
-        [uart_pin] "I" (PIN_TX),
-        [txdelay] "I" (TXDELAY),
-        [ch] "r" (txbyte)
-        : "r0","r28","r29","r30"
-    );
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        __asm volatile(
+            " cbi %[uart_port], %[uart_pin] \n\t" // start bit
+            " in r0, %[uart_port] \n\t"
+            " ldi r30, 3 \n\t" // stop bit + idle state
+            " ldi r28, %[txdelay] \n\t"
+            "TxLoop%=: \n\t"
+            // 8 cycle loop + delay - total = 7 + 3*r22
+            " mov r29, r28 \n\t"
+            "TxDelay%=: \n\t"
+            // delay (3 cycle * delayCount) - 1
+            " dec r29 \n\t"
+            " brne TxDelay%= \n\t"
+            " bst %[ch], 0 \n\t"
+            " bld r0, %[uart_pin] \n\t"
+            " lsr r30 \n\t"
+            " ror %[ch] \n\t"
+            " out %[uart_port], r0 \n\t"
+            " brne TxLoop%= \n\t"
+            :
+            : [uart_port] "I" (_SFR_IO_ADDR(PORTA)),
+            [uart_pin] "I" (PA2),
+            [txdelay] "I" (TXDELAY),
+            [ch] "r" (txbyte)
+            : "r0","r28","r29","r30"
+        );
+    }  // ATOMIC_BLOCK
 }
 
 /* End of code derived from attiny13-software-uart-library
 ============================================================ */
 
-#define SWUART_RX_BUFFER_LEN 32
 
-template<uint8_t buffer_len>
-class ByteRingBuffer {
- public:
-    inline bool is_empty() volatile {
-        return read_index == write_index;
-    }
+volatile char swuart_rx_char = '\0';
 
-    bool put(uint8_t in) volatile {
-        if ((write_index + 1) % buffer_len == read_index) {
-            return false;  // buffer is full, avoid overflow
-        }
-        buffer[write_index] = in;
-        write_index = (write_index + 1) % buffer_len;
-        return true;
-    }
-
-    bool get(uint8_t& out) volatile {
-        if (is_empty()) {
-            return false;  // buffer is empty
-        }
-
-        out = buffer[read_index];
-        read_index = (read_index + 1) % buffer_len;
-        return true;
-    }
-
-    bool peek(uint8_t& out) volatile {
-        if (is_empty()) {
-            return false;
-        }
-        out = buffer[read_index];
-        return true;
-    }
-
- protected:
-    uint8_t buffer[buffer_len];
-    uint8_t write_index = 0;
-    uint8_t read_index = 0;
-};
-
-DayCounterSWUART sw_uart;
-volatile ByteRingBuffer<SWUART_RX_BUFFER_LEN> rx_buffer;
-
-volatile bool got_rx = false;
-
+/**
+ * Analog comparator interrupt: It's being triggered on
+ * falling edge of UART RX line.
+ */
 ISR(ANA_COMP_vect) {
-    uint8_t rx_char = rx_byte_sw_uart();
-    rx_buffer.put(rx_char);
-    ACSR |= (1 << ACI);  // clear comparator interrupt flag
-    got_rx = true;
-    // impl: set busy flag for RX received
+    char rx_char = rx_byte_sw_uart();  // Read the incoming byte
+    ACSR |= (1 << ACI);                // Reset comparator interrupt flag
+    if (swuart_rx_char != '\0') {
+        // Stored character has not been consumed yet.
+        // Discard the new character.
+        return;  
+    }
+    swuart_rx_char = rx_char;
+    busy_flags |= BF_UARTRX;
 }
 
-/// It's assumed that interrupts are disabled within this context.
-__attribute__((always_inline)) inline void txpin_set_output_mode() {
-    PCMSK0 &= ~(1 << PCINT1);  // disable PCINT for this pin
-    PORTA |= (1 << PA1);       // logic 1
-    DDRA |= (1 << PA1);        // output
-}
-
-/// It's assumed that interrupts are disabled within this context.
-__attribute__((always_inline)) inline void txpin_set_input_mode() {
-    DDRA &= ~(1 << PA1);       // input
-    PORTA &= ~(1 << PA1);      // no pullup (have an external)
-    GIFR |= (1 << PCIF0);
-    PCMSK0 |= (1 << PCINT1);   // enable PCINT for this pin
-}
-
-
-void DayCounterSWUART::begin() {
+void setup_swuart() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        // - Configure RX as input through Analog Comparator:
         // Analog comparator: Set positive input to bandgap voltage,
-        // enable interrupts, trigger interrupts on rising ACO edge.
-        ACSR |= (1 << ACBG) | (1 << ACIE) | (1 << ACIS0) | (1 << ACIS1);
-        // RX pin as input, pullup disabled
-        PORTA &= ~(1 << PIN_RX);
-        DDRA &= ~(1 << PIN_RX);
-        // - Configure TX as an input so it can listen for the SET button
-        //txpin_set_input_mode();
-
-        txpin_set_output_mode();
-    }
+        // trigger interrupts on rising ACO edge.
+        ACSR |= (1 << ACBG) | (1 << ACIS0) | (1 << ACIS1);
+        swuart_mode_rx();
+    }  // ATOMIC_BLOCK
 }
 
-int DayCounterSWUART::available() {
-    return !rx_buffer.is_empty();
-}
-
-int DayCounterSWUART::peek() {
-    uint8_t ch;
-    if (!rx_buffer.peek(ch)) {
-        return -1;
-    }
-    return ch;
-}
-
-int DayCounterSWUART::read() {
-    uint8_t ch;
-    if (!rx_buffer.get(ch)) {
-        return -1;
-    }
-    return ch;
-}
-
-size_t DayCounterSWUART::write(uint8_t ch) {
+void swuart_mode_rx() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-//        txpin_set_output_mode(); 	// configure TX as output
-        tx_byte_sw_uart(ch); 	// transmit one byte
-//        txpin_set_input_mode();     // configure TX as input for SET button
+        // Pin as input, pullup disabled
+        PORTA &= ~(1 << PA2);
+        DDRA &= ~(1 << PA2);
+        // Enable Analog Comparator interrupts
+        ACSR |= (1 << ACIE);
+        ACSR |= (1 << ACI);  // clear interrupt flag
     }
-    return 1;
 }
 
-size_t DayCounterSWUART::write(const uint8_t* buffer, size_t size) {
+void swuart_mode_tx() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-//        txpin_set_output_mode(); 	// configure TX as output
-        while (size--) {
-            tx_byte_sw_uart(*buffer++);  // transmit one byte
-        }
-//        txpin_set_input_mode();     // configure TX as input for SET button
+        // Pin as output, HIGH.
+        PORTA |= (1 << PA2);
+        DDRA |= (1 << PA2);
+        // Disable Analog Comparator interrupts
+        ACSR &= ~(1 << ACIE);
+        ACSR |= (1 << ACI);  // clear interrupt flag
     }
-    return size;
+}
+
+// write single character.
+void swuart_write(char out) {
+    tx_byte_sw_uart(out);
+}
+
+// write until terminating character.
+void swuart_write(const char* out) {
+    while (*out) {
+        tx_byte_sw_uart(*out++);
+    }
+}
+
+// write until terminating character, strings using F().
+void swuart_write(const __FlashStringHelper* fptr) {
+    PGM_P pgm_ptr = reinterpret_cast<PGM_P>(fptr);
+    while (char out = pgm_read_byte(pgm_ptr++)) {
+        tx_byte_sw_uart(out);
+    }
 }
