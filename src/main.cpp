@@ -11,15 +11,20 @@
 #include <Arduino.h>
 #include "globals.h"
 #include "uart.h"
-#include <SPI.h>   // for ssd1306 for now
+#include <SPI.h>   // for needed ssd1306 library unless I fix this.
 #include <Wire.h>
 #include "ui.h"
+#include "display.h"
 
 volatile uint8_t busy_flags = 0;
+
+DisplayGlyphs glyphs;
 
 void setup() {
     //GIMSK |= (1 << PCIE0);  // enable PCINT0 interrupts
     setup_swuart();
+    setup_display();
+
     swuart_mode_tx();
     swuart_write(F("\r\n== CatBotLabs DayCounter K001 ==\r\n"
                  "built " __DATE__ __TIME__ "\r\n"));
@@ -42,11 +47,14 @@ void setup() {
     sprintf(buf, "dt %d", t2-t1);
     swuart_write(buf);
     swuart_mode_rx();
+
+    set_glyphs(7, glyphs);
+
 }
 
 void loop() {
     do {
-        // tight display loop
+        display_glyphs(glyphs);
     } while (busy_flags == 0);
 
     if (busy_flags & BF_PPS) {

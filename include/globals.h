@@ -11,8 +11,7 @@
 #ifndef DCFW_INCLUDE_GLOBALS_H_
 #define DCFW_INCLUDE_GLOBALS_H_
 
-//#include <stdint.h>
-#include <Arduino.h>
+#include <stdint.h>
 
 /**
  * A single volatile byte where specific bits can be
