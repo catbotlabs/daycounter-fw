@@ -9,9 +9,9 @@
  * (See the LICENSE file)
  */
 
-#ifndef DCFW_INCLUDE_UI_H_
-#define DCFW_INCLUDE_UI_H_
+#ifndef INCLUDE_UI_H_
+#define INCLUDE_UI_H_
 
 #include <ssd1306.h>
 
-#endif  // DCFW_INCLUDE_UI_H_
+#endif  // INCLUDE_UI_H_

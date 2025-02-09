@@ -9,8 +9,8 @@
  * (See the LICENSE file)
  */
 
-#ifndef DCFW_INCLUDE_UART_H_
-#define DCFW_INCLUDE_UART_H_
+#ifndef INCLUDE_UART_H_
+#define INCLUDE_UART_H_
 
 #include <Arduino.h>
 #include <avr/io.h>
@@ -39,4 +39,4 @@ void swuart_write(char out);
 void swuart_write(const char* out);
 void swuart_write(const __FlashStringHelper* fptr);
 
-#endif  // DCFW_INCLUDE_UART_H_
+#endif  // INCLUDE_UART_H_

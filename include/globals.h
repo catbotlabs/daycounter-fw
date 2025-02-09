@@ -8,8 +8,8 @@
  * This source code is provided under the terms of the MIT License.
  * (See the LICENSE file)
  */
-#ifndef DCFW_INCLUDE_GLOBALS_H_
-#define DCFW_INCLUDE_GLOBALS_H_
+#ifndef INCLUDE_GLOBALS_H_
+#define INCLUDE_GLOBALS_H_
 
 #include <stdint.h>
 
@@ -28,4 +28,4 @@ enum {
     BF_UARTRX = 0x02,  /// Byte received on software UART
 };
 
-#endif  // DCFW_INCLUDE_GLOBALS_H_
+#endif  // INCLUDE_GLOBALS_H_

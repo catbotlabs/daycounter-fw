@@ -1,5 +1,5 @@
 /**
- * @file include/display.h
+ * @file lib/display/display.h
  * @brief Digital display code.
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
@@ -9,8 +9,8 @@
  * (See the LICENSE file)
  */
 
-#ifndef DCFW_INCLUDE_DISPLAY_H_
-#define DCFW_INCLUDE_DISPLAY_H_
+#ifndef LIB_DISPLAY_DISPLAY_H_
+#define LIB_DISPLAY_DISPLAY_H_
 
 #include <stdint.h>
 
@@ -41,7 +41,8 @@ void setup_display();
  * Otherwise, the digits are set to their base-10 digit
  * values according to count.
  */
-void set_glyphs(uint16_t count, DisplayGlyphs& glyphs);  // TEST this function
-void display_glyphs(const DisplayGlyphs& glyphs);
+void set_glyphs(int16_t count, DisplayGlyphs* glyphs);  // TEST this function
+void display_glyphs_oe(const DisplayGlyphs& glyphs);
+void display_glyphs_no_oe(const DisplayGlyphs& glyphs);
 
-#endif  // DCFW_INCLUDE_DISPLAY_H_
+#endif  // LIB_DISPLAY_DISPLAY_H_

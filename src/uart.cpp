@@ -82,10 +82,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // [115200 is too fast to work reliably without calibrating the oscillator.]
 #define UART_BAUDRATE 57600
 
-#define	TXDELAY         	(int)(((F_CPU/UART_BAUDRATE)-7 +1.5)/3)
-#define RXDELAY         	(int)(((F_CPU/UART_BAUDRATE)-5 +1.5)/3)
-#define RXDELAY2        	(int)((RXDELAY*1.5)-2.5)
-#define RXROUNDED       	(((F_CPU/UART_BAUDRATE)-5 +2)/3)
+#define TXDELAY         (int)(((F_CPU/UART_BAUDRATE)-7 +1.5)/3)
+#define RXDELAY         (int)(((F_CPU/UART_BAUDRATE)-5 +1.5)/3)
+#define RXDELAY2        (int)((RXDELAY*1.5)-2.5)
+#define RXROUNDED       (((F_CPU/UART_BAUDRATE)-5 +2)/3)
 #if RXROUNDED > 127
 # error Low baud rates are not supported - use higher, UART_BAUDRATE
 #endif
@@ -93,7 +93,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /// It's assumed that interrupts are disabled within this context.
 __attribute__((always_inline)) inline uint8_t rx_byte_sw_uart() {
     uint8_t rxbyte;
-    __asm volatile(
+    asm volatile(
         " ldi r18, %[rxdelay2] \n\t" // 1.5 bit delay
         " ldi %0, 0x80 \n\t" // bit shift counter
         "RxBit%=: \n\t"
@@ -121,7 +121,7 @@ __attribute__((always_inline)) inline uint8_t rx_byte_sw_uart() {
 
 void tx_byte_sw_uart(uint8_t txbyte) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        __asm volatile(
+        asm volatile(
             " cbi %[uart_port], %[uart_pin] \n\t" // start bit
             " in r0, %[uart_port] \n\t"
             " ldi r30, 3 \n\t" // stop bit + idle state
@@ -165,7 +165,7 @@ ISR(ANA_COMP_vect) {
     if (swuart_rx_char != '\0') {
         // Stored character has not been consumed yet.
         // Discard the new character.
-        return;  
+        return;
     }
     swuart_rx_char = rx_char;
     busy_flags |= BF_UARTRX;
