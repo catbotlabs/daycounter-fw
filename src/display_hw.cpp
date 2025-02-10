@@ -12,6 +12,7 @@
 
 #include "display.h"
 #include <avr/io.h>
+#include <avr/cpufunc.h>
 
 /**
  * Display-related pins:
@@ -58,8 +59,9 @@ void display_glyphs_oe(const DisplayGlyphs& glyphs) {
     /// DIGIT 0: Ones place
     display_send_byte(glyphs.dg[0]);  // write shift register
     PORTA |= (1 << PA2);   // OE high
-    PORTA |= (1 << PA7);   // set latch
+    _NOP();
     PORTA |= (1 << PA5);   // set DGO
+    PORTA |= (1 << PA7);   // set latch
     PORTA &= ~(1 << PA2);  // OE low
     PORTA &= ~(1 << PA7);  // clear latch
 
@@ -76,6 +78,7 @@ void display_glyphs_oe(const DisplayGlyphs& glyphs) {
     PORTA |= (1 << PA2);   // OE high
     PORTA |= (1 << PA7);   // set latch
     PORTA &= ~(1 << PA5);  // clear DG0
+    _NOP();
     PORTA &= ~(1 << PA2);  // OE low
     PORTA &= ~(1 << PA7);  // clear latch
 
@@ -90,9 +93,10 @@ void display_glyphs_oe(const DisplayGlyphs& glyphs) {
     /// DIGIT 2: Hundreds place
     display_send_byte(glyphs.dg[2]);  // write shift register
     PORTA |= (1 << PA2);   // OE high
+    _NOP();
     PORTA |= (1 << PA7);   // set latch
-    PORTA &= ~(1 << PA2);  // OE low
     PORTA &= ~(1 << PA7);  // clear latch
+    PORTA &= ~(1 << PA2);  // OE low
 
     /* Note: The main loop condition makes the hundreds place drawn for
        6 additional clock cycles, so NOP instructions have been added

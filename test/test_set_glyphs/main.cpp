@@ -1,6 +1,9 @@
 /**
- * @file test/test_display/main.cpp
- * @brief Unit testing for portions of the `display` source code.
+ * @file test/test_set_glyphs/main.cpp
+ * @brief Unit testing for the set_glyphs function.
+ * 
+ * This set_glyphs function essentially converts a given number
+ * to the three bytes of segment bits to be sent to the shift register.
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 

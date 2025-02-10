@@ -41,7 +41,7 @@ void setup_display();
  * Otherwise, the digits are set to their base-10 digit
  * values according to count.
  */
-void set_glyphs(int16_t count, DisplayGlyphs* glyphs);  // TEST this function
+void set_glyphs(int16_t count, DisplayGlyphs* glyphs);
 void display_glyphs_oe(const DisplayGlyphs& glyphs);
 void display_glyphs_no_oe(const DisplayGlyphs& glyphs);
 
