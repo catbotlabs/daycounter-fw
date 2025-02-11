@@ -232,7 +232,7 @@ __attribute__((always_inline)) inline void swuart_print_digit(uint8_t dg) {
 // print a 16-bit signed integer.
 void swuart_print_int(int16_t num) {
     if (num < 0) {
-        tx_byte_sw_uart('-1');
+        tx_byte_sw_uart('-');
         num *= -1;
     }
     if (num > 10000) {
