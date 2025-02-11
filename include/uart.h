@@ -30,10 +30,12 @@ extern volatile char swuart_rx_char;
 void setup_swuart();
 
 // Configures UART pin as input, sets up pin's interrupts.
-void swuart_mode_rx();
+// Returns whether or not we are in TX mode (always 0)
+bool swuart_mode_rx();
 
 // Configures UART pin as output, disables pin's interrupts.
-void swuart_mode_tx();
+// Returns whether or not we are in TX mode (always 1)
+bool swuart_mode_tx();
 
 void swuart_write(char out);
 void swuart_write(const char* out);
@@ -41,5 +43,18 @@ void swuart_write(const __FlashStringHelper* fptr);
 
 // print a 16-bit signed integer.
 void swuart_print_int(int16_t num);
+
+
+/**
+ * Block wrapper that calls swuart_mode_tx() before the block
+ * and swuart_mode_rx() after the block.
+ * 
+ * Example:
+ * 
+ * UART_TX_BLOCK {    // (calls swuart_mode_tx())
+ *    [swuart_write calls]
+ * }  // (calls swuart_mode_rx())
+ */
+#define UART_TX_BLOCK for (uint8_t i=swuart_mode_tx(); i; i=swuart_mode_rx())
 
 #endif  // INCLUDE_UART_H_

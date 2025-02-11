@@ -47,15 +47,16 @@ bool read_byte(uint8_t addr, uint8_t* data) {
 void setup_rtc() {
     uint8_t control_byte = 177;
 
-    swuart_mode_tx();
-    if (read_byte(CONTROL, &control_byte)) {
-        swuart_write("control byte fail\r\n");
-    } else {
-        swuart_write("success\r\n");
-    }
+    UART_TX_BLOCK {
+        if (read_byte(CONTROL, &control_byte)) {
+            swuart_write("control byte fail\r\n");
+        } else {
+            swuart_write("success\r\n");
+        }
 
-    swuart_print_int(control_byte);
-    swuart_mode_rx();
+        swuart_print_int(control_byte);
+
+    }
 }
 
 
