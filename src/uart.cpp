@@ -221,3 +221,35 @@ void swuart_write(const __FlashStringHelper* fptr) {
         tx_byte_sw_uart(out);
     }
 }
+
+
+// assumes dg is between 0 and 9.
+__attribute__((always_inline)) inline void swuart_print_digit(uint8_t dg) {
+    tx_byte_sw_uart('0' + dg);
+}
+
+
+// print a 16-bit signed integer.
+void swuart_print_int(int16_t num) {
+    if (num < 0) {
+        tx_byte_sw_uart('-1');
+        num *= -1;
+    }
+    if (num > 10000) {
+        swuart_print_digit(num / 10000);
+        num %= 10000;
+    }
+    if (num > 1000) {
+        swuart_print_digit(num / 1000);
+        num %= 1000;
+    }
+    if (num > 100) {
+        swuart_print_digit(num / 100);
+        num %= 100;
+    }
+    if (num > 10) {
+        swuart_print_digit(num / 10);
+        num %= 10;
+    }
+    swuart_print_digit(num);
+}

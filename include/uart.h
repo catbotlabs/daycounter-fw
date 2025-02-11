@@ -39,4 +39,7 @@ void swuart_write(char out);
 void swuart_write(const char* out);
 void swuart_write(const __FlashStringHelper* fptr);
 
+// print a 16-bit signed integer.
+void swuart_print_int(int16_t num);
+
 #endif  // INCLUDE_UART_H_
