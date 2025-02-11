@@ -1,7 +1,6 @@
 /**
  * @file src/display_hw.cpp
  * @brief Hardware-related code relating to the digital display.
- * This code isn't included in unit testing.
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
