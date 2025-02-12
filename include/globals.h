@@ -28,4 +28,13 @@ enum {
     BF_UARTRX = 0x02,  /// Byte received on software UART
 };
 
+enum {
+    OEMODE_UART,
+    OEMODE_OE
+};
+
+// false: UART/OE pin used for UART
+// true: UART/OE pin used for OE 
+extern bool oe_mode;
+
 #endif  // INCLUDE_GLOBALS_H_

@@ -9,10 +9,18 @@
  * (See the LICENSE file)
  */
 
- #ifndef INCLUDE_RTC_H_
- #define INCLUDE_RTC_H_
+#ifndef INCLUDE_RTC_H_
+#define INCLUDE_RTC_H_
 
-void setup_rtc();
+#include <stdint.h>
 
+/**
+ * @brief Makes sure the RTC's registers are set properly.
 
- #endif  // INCLUDE_RTC_H_
+ * @returns 0 if all registers are set as expected.
+ *          1 if any registers were adjusted.
+ *          2 if failed to communicate with RTC.
+ */
+uint8_t setup_rtc();
+
+#endif  // INCLUDE_RTC_H_

@@ -181,6 +181,7 @@ void setup_swuart() {
 }
 
 bool swuart_mode_rx() {
+    if (oe_mode != OEMODE_UART) return 0;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Pin as input, pullup disabled
         PORTA &= ~(1 << PA2);
@@ -189,10 +190,11 @@ bool swuart_mode_rx() {
         ACSR |= (1 << ACIE);
         ACSR |= (1 << ACI);  // clear interrupt flag
     }
-    return 0;  // Return whether we are in TX mode
+    return 0;  // Always return 0
 }
 
 bool swuart_mode_tx() {
+    if (oe_mode != OEMODE_UART) return 1;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Pin as output, HIGH.
         PORTA |= (1 << PA2);
@@ -201,7 +203,7 @@ bool swuart_mode_tx() {
         ACSR &= ~(1 << ACIE);
         ACSR |= (1 << ACI);  // clear interrupt flag
     }
-    return 1;  // Return whether we are in TX mode
+    return 1;  // Always return 1
 }
 
 // write single character.

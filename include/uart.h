@@ -30,20 +30,31 @@ extern volatile char swuart_rx_char;
 void setup_swuart();
 
 // Configures UART pin as input, sets up pin's interrupts.
-// Returns whether or not we are in TX mode (always 0)
+// Does nothing if oe_mode is set to OEMODE_OE.
+// Always returns 0.
 bool swuart_mode_rx();
 
 // Configures UART pin as output, disables pin's interrupts.
-// Returns whether or not we are in TX mode (always 1)
+// Does nothing if oe_mode is set to OEMODE_OE.
+// Always returns 1.
 bool swuart_mode_tx();
 
 void swuart_write(char out);
 void swuart_write(const char* out);
 void swuart_write(const __FlashStringHelper* fptr);
 
-// print a 16-bit signed integer.
+/**
+ * Print a signed 16-bit integer as base 10 text to
+ * software UART.
+ */
 void swuart_print_int(int16_t num);
 
+/**
+ * Write CR-LF to software UART.
+ */
+__attribute__((always_inline)) inline void swuart_newline() {
+    swuart_write("\r\n");
+}
 
 /**
  * Block wrapper that calls swuart_mode_tx() before the block
@@ -54,6 +65,10 @@ void swuart_print_int(int16_t num);
  * UART_TX_BLOCK {    // (calls swuart_mode_tx())
  *    [swuart_write calls]
  * }  // (calls swuart_mode_rx())
+ * 
+ * Note: Since this is based on a simple for loop,
+ * it will not call swuart_mode_rx if you break out
+ * using return.
  */
 #define UART_TX_BLOCK for (uint8_t i=swuart_mode_tx(); i; i=swuart_mode_rx())
 

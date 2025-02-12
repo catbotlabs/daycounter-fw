@@ -13,7 +13,7 @@ O/I   SIG    PIN       PIN    SIG      I/O
 <-    SRC    PB0 |   | PA0    
 <-    SRD    PB1 |   | PA1    
        NC    PB3 |   | PA2    UART/OE  <->
-             PB2 |   | PA3    
+ ->   PPS    PB2 |   | PA3    
 <-    SRL    PA7 |   | PA4    SCL      <->
 <->   SDA    PA6 |___| PA5    DG0       ->
 
@@ -39,3 +39,7 @@ If both DG0 and DG1 are low, then DG2 (hundreds' place) is sunk.
 * SRD - PB1: Shift Register Data for the digital display shift register.
 
 * SRL - PA7: Shift Register Latch for the digital display shift register.
+
+* PPS - PB2: Pulse-per-second from RTC's MFP pin. Since the MFP pin is open-drain, the
+pullup resistor must be set on PB2. The ATtiny reads the time from the RTC upon startup,
+then keeps track of time using only the PPS signal.

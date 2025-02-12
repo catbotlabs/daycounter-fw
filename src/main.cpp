@@ -10,27 +10,36 @@
  */
 #include <Arduino.h>
 #include <Wire.h>
+#include <avr/wdt.h>
 #include "globals.h"
 #include "uart.h"
 #include "ui.h"
 #include "display.h"
 #include "rtc.h"
+#include "commands.h"
 
-// 1: UARTTX/OE pin used as OE.
-// 0: UARTTX/OE pin used as UARTTX.
 bool oe_mode = false;
 volatile uint8_t busy_flags = 0;
 
-enum
-{
-    OEMODE_UART,
-    OEMODE_OE
-};
-
 DisplayGlyphs glyphs;
 
-void setup()
-{
+/**
+ * Hardware interrupt 0 (PB2) triggered by rising edge of the
+ * pulse-per-second signal. This is the MCU's primary method
+ * of keeping time.
+ * PB2 is tied to the RTC's multi-function (MFP) pin.
+*/
+ISR(INT0_vect) {
+    busy_flags |= BF_PPS;
+}
+
+void setup() {
+    /** TODO: determine if/whether interrupts (I-bit) are set in this function. */
+
+    /** Disable watchdog in case of watchdog reset. */
+    MCUSR &= ~(1 << WDRF);
+    wdt_disable();
+
     /**
      * IF PA2 is HIGH:
      *   UART is plugged in, set oe_mode 0.
@@ -44,7 +53,6 @@ void setup()
         swuart_mode_tx();
         swuart_write(F("\r\n== CatBotLabs DayCounter K001 ==\r\n"
                        "built " __DATE__ __TIME__ "\r\n"));
-        swuart_mode_rx();
     }
     else if (oe_mode == OEMODE_OE)
     {
@@ -52,16 +60,38 @@ void setup()
         PORTA |= (1 << PA2); // OE pin: high (disable display)
     }
 
+    /** Initialize pins that drive the digital display. */
     setup_display();
 
+    /** Initialize I2C bus */
     Wire.setClock(300000); // enable USI TWI fast mode
     Wire.begin();
 
-    setup_rtc();
-
+    /** Setup and configure OLED screen. */
     ssd1306_128x32_i2c_init();
-
     ssd1306_fillScreen(0x00);
+
+    /** Setup PPS interrupts */
+    PORTB |= (1 << PB2);  // enable pullup resistor (MFP pin is open-drain)
+    // INT0 interrupts on rising edge
+    MCUCR |= (1 << ISC01) | (1 << ISC00);
+    // enable INT0 interrupts
+    GIMSK |= (1 << INT0);
+
+    /** Setup RTC */
+    switch (setup_rtc()) {
+        case 2:
+          // TODO: show a message on the OLED screen?
+          swuart_write(F("fatal: failed to communicate with RTC\r\n"));
+          break;
+        case 1:
+          swuart_write(F("info: RTC registers adjusted\r\n"));
+          break;
+        case 0:
+          swuart_write(F("info: RTC okay\r\n"));
+    }
+
+    /** OLED screen demo */
     ssd1306_setFixedFont(ssd1306xled_font6x8);
     ssd1306_printFixedN(30, 0, "Set Date", STYLE_NORMAL, 0);
     ssd1306_setFixedFont(digital_font5x7);
@@ -77,32 +107,31 @@ void setup()
     //    ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
 
     set_glyphs(230, &glyphs);
+
+    /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
+    swuart_mode_rx();
 }
 
 void loop()
 {
-    do
-    {
+    do {
         display_glyphs_oe(glyphs);
     } while (busy_flags == 0x00);
 
-    if (busy_flags & BF_PPS)
-    {
+    if (busy_flags & BF_PPS) {
         // pulse-per-second
-    }
-    else if (busy_flags & BF_UARTRX)
-    {
+        UART_TX_BLOCK {
+            static uint8_t ticks = 0;
+            swuart_write("tick ");
+            swuart_print_int(ticks);
+            swuart_newline();
+            ticks++;
+        }
+        busy_flags &= ~BF_PPS;
+    } else if (busy_flags & BF_UARTRX) {
         // uart byte received.
-
-        // We'll just echo back the character we received.
-        swuart_mode_tx();
-        swuart_write("\r\n");
-        char msg[] = "[x]\r\n";
-        msg[1] = swuart_rx_char;
-        swuart_write(msg);
-        swuart_mode_rx();
+        handle_uart_char(swuart_rx_char);
+        swuart_rx_char = '\0';  // consume character so we can take more.
         busy_flags &= ~BF_UARTRX;
-
-        swuart_rx_char = '\0'; // consume character so we can take more.
     }
 }
