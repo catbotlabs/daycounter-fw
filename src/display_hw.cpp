@@ -16,7 +16,7 @@
 /**
  * Display-related pins:
  * PA2: UART/OE  [Blanks display during transitions to eliminate ghosting]
- * PA5: DG0/DG1  [Select DG0 if HIGH or DG1 when LOW]
+ * PA5: DG0 sink enable
  * PA7: Shift Register Latch
  * PB0: Shift Register Clock
  * PB1: Shift Register Data
@@ -54,9 +54,9 @@ __attribute__((always_inline)) inline void display_send_byte(uint8_t data) {
     }
 }
 
-void display_glyphs_oe(const DisplayGlyphs& glyphs) {
+void display_glyphs_oe(const DisplayGlyphs glyphs) {
     /// DIGIT 0: Ones place
-    display_send_byte(glyphs.dg[0]);  // write shift register
+    display_send_byte(glyphs[0]);  // write shift register
     PORTA |= (1 << PA2);   // OE high
     _NOP();
     PORTA |= (1 << PA5);   // set DGO
@@ -64,6 +64,7 @@ void display_glyphs_oe(const DisplayGlyphs& glyphs) {
     PORTA &= ~(1 << PA2);  // OE low
     PORTA &= ~(1 << PA7);  // clear latch
 
+    /** TODO: Re-balance clock cycles */
     asm volatile ("nop\n\t"
         "nop\n\t"
         "nop\n\t"
@@ -73,7 +74,7 @@ void display_glyphs_oe(const DisplayGlyphs& glyphs) {
         ::);  // Six extra clock cycles for balance
 
     /// DIGIT 1: Tens place
-    display_send_byte(glyphs.dg[1]);  // write shift register
+    display_send_byte(glyphs[1]);  // write shift register
     PORTA |= (1 << PA2);   // OE high
     PORTA |= (1 << PA7);   // set latch
     PORTA &= ~(1 << PA5);  // clear DG0
@@ -90,7 +91,7 @@ void display_glyphs_oe(const DisplayGlyphs& glyphs) {
         ::);  // Six extra clock cycles for balance
 
     /// DIGIT 2: Hundreds place
-    display_send_byte(glyphs.dg[2]);  // write shift register
+    display_send_byte(glyphs[2]);  // write shift register
     PORTA |= (1 << PA2);   // OE high
     _NOP();
     PORTA |= (1 << PA7);   // set latch

@@ -239,19 +239,19 @@ void swuart_print_int(int16_t num) {
         tx_byte_sw_uart('-');
         num *= -1;
     }
-    if (num > 10000) {
+    if (num >= 10000) {
         swuart_print_digit(num / 10000);
         num %= 10000;
     }
-    if (num > 1000) {
+    if (num >= 1000) {
         swuart_print_digit(num / 1000);
         num %= 1000;
     }
-    if (num > 100) {
+    if (num >= 100) {
         swuart_print_digit(num / 100);
         num %= 100;
     }
-    if (num > 10) {
+    if (num >= 10) {
         swuart_print_digit(num / 10);
         num %= 10;
     }

@@ -41,7 +41,7 @@ void cmd_system_test() {
     /** Test the display by displaying all 8's */
     // DDRA for PA2 is set as output since we are in UART TX mode.
     for (uint16_t i=30000; i!=0; i++) {
-        DisplayGlyphs gl{.dg={DIGIT_GLYPHS[8], DIGIT_GLYPHS[8]|1, DIGIT_GLYPHS[8]}};
+        DisplayGlyphs gl{DIGIT_GLYPHS[8], DIGIT_GLYPHS[8]|1, DIGIT_GLYPHS[8]};
         display_glyphs_oe(gl);
     }
     PORTA |= (1 << PA2);  // Set UART pin HIGH after being used for OE.
