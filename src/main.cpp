@@ -123,7 +123,6 @@ void setup() {
     /** Setup RTC */
     switch (setup_rtc()) {
       case 2:
-
         ssd1306_clearScreen();
         ssd1306_setFixedFont(digital_font5x7);
         ssd1306_printFixedN(0, 20, "check RTC", STYLE_NORMAL, 1);
@@ -146,8 +145,7 @@ void setup() {
     ssd1306_setFixedFont(digital_font5x7);
     if (oe_mode) {
         ssd1306_printFixedN(20, 20, "oe_mode 1", STYLE_NORMAL, 1);
-    }
-    else {
+    } else {
         ssd1306_printFixedN(20, 20, "oe_mode 0", STYLE_NORMAL, 1);
     }
     //    ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
@@ -167,13 +165,6 @@ void loop() {
 
     if (busy_flags & BF_PPS) {
         /** Pulse-per-second event received. */
-        UART_TX_BLOCK {
-            static uint8_t ticks = 0;
-            swuart_write("tick ");
-            swuart_print_int(ticks);
-            swuart_write("   \r");
-            ticks++;
-        }
         busy_flags &= ~BF_PPS;
     } else if (busy_flags & BF_UARTRX) {
         /** Character received from UART link. */

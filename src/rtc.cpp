@@ -1,6 +1,6 @@
 /**
  * @file src/rtc.cpp
- * @brief RTC hardware/I2C interfacing
+ * @brief MCP7940N RTC I2C interfacing
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
@@ -12,6 +12,7 @@
 #include "rtc.h"
 #include <Wire.h>
 #include <uart.h>
+#include "datetime.h"
 
 const uint8_t RTC_ADDR = 0x6f;
 
@@ -131,4 +132,28 @@ uint8_t setup_rtc() {
     return mod;
 }
 
+void rtc_read_datetime(DateTime* dt) {
+    DateTimeRegisters rg;
 
+    /** Request to read 7 bytes starting at 0x00. */
+    Wire.beginTransmission(RTC_ADDR);
+    Wire.write(0x00);
+    Wire.endTransmission();
+    Wire.requestFrom(RTC_ADDR, (uint8_t)7);
+
+    // Read the seven time-keeping registers.
+
+    rg.rtcsec = Wire.read();
+    rg.rtcmin = Wire.read();
+    rg.rtchour = Wire.read();
+    Wire.read();  // discard RTCWKDAY
+    rg.rtcdate = Wire.read();
+    rg.rtcmth = Wire.read();
+    rg.rtcyear = Wire.read();
+
+    datetime_from_registers(dt, rg);
+}
+
+void rtc_write_datetime(DateTime dt) {
+    /** Oscillator must be stopped when writing date/time to RTC. */
+}

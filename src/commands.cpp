@@ -16,6 +16,8 @@
 #include "glyphdefs.h"
 #include "display.h"
 #include "ui.h"
+#include "datetime.h"
+#include "rtc.h"
 
 // 'r'
 void cmd_watchdog_reset() {
@@ -27,8 +29,6 @@ void cmd_watchdog_reset() {
 void cmd_say_hello() {
     swuart_write(F("Hi there!\r\n"));
 }
-
-
 
 // 't'
 void cmd_system_test() {
@@ -48,6 +48,28 @@ void cmd_system_test() {
     swuart_write(F("\r\nsystem test completed\r\n"));
 }
 
+void print_datetime(const DateTime& dt) {
+    swuart_write("mm ");
+    swuart_print_int(dt.date.mm);
+    swuart_write(", dd ");
+    swuart_print_int(dt.date.dd);
+    swuart_write(", yy ");
+    swuart_print_int(dt.date.yy);
+    swuart_write(", HH ");
+    swuart_print_int(dt.time.HH);
+    swuart_write(", MM ");
+    swuart_print_int(dt.time.MM);
+    swuart_write(", SS ");
+    swuart_print_int(dt.time.SS);
+    swuart_newline();
+}
+
+void cmd_read_rtc_time() {
+    DateTime dt;
+    rtc_read_datetime(&dt);
+    print_datetime(dt);
+}
+
 void handle_uart_char(char ch) {
     swuart_mode_tx();
     swuart_write(F("\r\n"));
@@ -60,6 +82,9 @@ void handle_uart_char(char ch) {
           break;
         case 't':
           cmd_system_test();
+          break;
+        case 'd':
+          cmd_read_rtc_time();
           break;
     }
     swuart_mode_rx();

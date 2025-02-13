@@ -10,9 +10,9 @@
  * (See the LICENSE file)
  */
 
- #ifndef INCLUDE_COMMANDS_H_
- #define INCLUDE_COMMANDS_H_
+#ifndef INCLUDE_COMMANDS_H_
+#define INCLUDE_COMMANDS_H_
 
 void handle_uart_char(char ch);
 
- #endif  // INCLUDE_COMMANDS_H_
+#endif  // INCLUDE_COMMANDS_H_

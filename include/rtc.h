@@ -1,6 +1,7 @@
 /**
  * @file include/rtc.h
- * @brief Software UART using Analog Comparator interrupts.
+ * @brief Functions to configure, read from and write to the
+ * MCP7940N battery-backed RTC.
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
@@ -13,6 +14,7 @@
 #define INCLUDE_RTC_H_
 
 #include <stdint.h>
+#include "datetime.h"
 
 /**
  * @brief Makes sure the RTC's registers are set properly.
@@ -22,5 +24,10 @@
  *          2 if failed to communicate with RTC.
  */
 uint8_t setup_rtc();
+
+/**
+ * Populate a DateTime object with the date and time from the RTC.
+ */
+void rtc_read_datetime(DateTime* dt);
 
 #endif  // INCLUDE_RTC_H_
