@@ -48,26 +48,45 @@ void cmd_system_test() {
     swuart_write(F("\r\nsystem test completed\r\n"));
 }
 
-void print_datetime(const DateTime& dt) {
+void cmd_datetime_dev() {
+    Time t;
+    volatile uint8_t val = 0;
+   // t.field_max_bound(val);
+    /*for (int i = DateTimeField::SECOND+1; i --> 0; ) {
+        swuart_print_int(i);
+        swuart_newline();
+    }*/
+   Date date(val, val, val);
+   Time time(val, val, val);
+   tick_datetime_one_second(&date, &time);
+}
+
+void print_date(const Date& date) {
     swuart_write("mm ");
-    swuart_print_int(dt.date.mm);
+    swuart_print_int(date.month());
     swuart_write(", dd ");
-    swuart_print_int(dt.date.dd);
+    swuart_print_int(date.day());
     swuart_write(", yy ");
-    swuart_print_int(dt.date.yy);
-    swuart_write(", HH ");
-    swuart_print_int(dt.time.HH);
+    swuart_print_int(date.year());
+    swuart_newline();
+}
+
+void print_time(const Time& time) {
+    swuart_write("HH ");
+    swuart_print_int(time.hour());
     swuart_write(", MM ");
-    swuart_print_int(dt.time.MM);
+    swuart_print_int(time.minute());
     swuart_write(", SS ");
-    swuart_print_int(dt.time.SS);
+    swuart_print_int(time.second());
     swuart_newline();
 }
 
 void cmd_read_rtc_time() {
-    DateTime dt;
-    rtc_read_datetime(&dt);
-    print_datetime(dt);
+    Date date;
+    Time time;
+    rtc_read_datetime(&date, &time);
+    print_date(date);
+    print_time(time);
 }
 
 void handle_uart_char(char ch) {
@@ -85,6 +104,9 @@ void handle_uart_char(char ch) {
           break;
         case 'd':
           cmd_read_rtc_time();
+          break;
+        case 'D':
+          cmd_datetime_dev();
           break;
     }
     swuart_mode_rx();

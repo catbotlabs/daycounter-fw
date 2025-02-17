@@ -132,7 +132,7 @@ uint8_t setup_rtc() {
     return mod;
 }
 
-void rtc_read_datetime(DateTime* dt) {
+void rtc_read_datetime(Date* date, Time* time) {
     DateTimeRegisters rg;
 
     /** Request to read 7 bytes starting at 0x00. */
@@ -151,9 +151,9 @@ void rtc_read_datetime(DateTime* dt) {
     rg.rtcmth = Wire.read();
     rg.rtcyear = Wire.read();
 
-    datetime_from_registers(dt, rg);
+    datetime_from_registers(date, time, rg);
 }
 
-void rtc_write_datetime(DateTime dt) {
+void rtc_write_datetime(Date* date, Time* time) {
     /** Oscillator must be stopped when writing date/time to RTC. */
 }

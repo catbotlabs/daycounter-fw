@@ -28,6 +28,6 @@ uint8_t setup_rtc();
 /**
  * Populate a DateTime object with the date and time from the RTC.
  */
-void rtc_read_datetime(DateTime* dt);
+void rtc_read_datetime(Date* date, Time* time);
 
 #endif  // INCLUDE_RTC_H_
