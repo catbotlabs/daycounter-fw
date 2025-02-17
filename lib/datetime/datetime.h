@@ -72,7 +72,7 @@ constexpr auto ATF_HOUR = AscendingTimeField::HOUR;
  * So it's necessary to get the days in the month as such:
  *  @code DAYS_IN_MONTH[date.month() - 1]  @endcode
  */
-const static uint8_t DAYS_IN_MONTH[12] =
+static const uint8_t DAYS_IN_MONTH[12] =
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 /**
@@ -96,7 +96,7 @@ class Date {
     /** Note that the arguments are NOT in the same order as the fields. */
     Date(uint8_t month, uint8_t day, uint8_t year) :
         fields{day, month, year} {}
-        
+
     /** Const-qualified accessors for day, month, and year */
     const uint8_t& day()   const { return fields[0]; }
     const uint8_t& month() const { return fields[1]; }
@@ -230,11 +230,9 @@ struct DateTimeRegisters {
  * Sets all members of a DateTime object using
  * the buffered raw register data from the MCP7940N RTC.
  */
-void datetime_from_registers(Date* date, Time* time, const DateTimeRegisters& rg);
+void datetime_from_registers(Date* date, Time* time,
+    const DateTimeRegisters& rg);
 
 void tick_datetime_one_second(Date* date, Time* time);
-
-//uint8_t get_field_max_bound(Date* dt, DateTimeField field);
-//uint8_t get_field_max_bound(DateTime* dt, DateTimeField field);
 
 #endif  // LIB_DATETIME_DATETIME_H_

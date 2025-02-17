@@ -62,7 +62,8 @@ ISR(WATCHDOG_vect) {
 }
 
 void setup() {
-    /** TODO: determine if/whether interrupts (I-bit) are set in this function. */
+    /** TODO: determine if/whether interrupts (I-bit)
+     *  are set in this function. */
 
     /** Disable watchdog in case of watchdog reset. */
     MCUSR &= ~(1 << WDRF);
@@ -81,15 +82,15 @@ void setup() {
         swuart_write(F("\r\n== CatBotLabs DayCounter K001 ==\r\n"
                        "built " __DATE__ __TIME__ "\r\n"));
     } else if (oe_mode == OEMODE_OE) {
-        DDRA |= (1 << PA2);  // OE pin: output
-        PORTA |= (1 << PA2); // OE pin: high (disable display)
+        DDRA |= (1 << PA2);   // OE pin: output
+        PORTA |= (1 << PA2);  // OE pin: high (disable display)
     }
 
     /** Initialize pins that drive the digital display. */
     setup_display();
 
     /** Initialize I2C bus */
-    Wire.setClock(300000); // enable USI TWI fast mode
+    Wire.setClock(300000);  // enable USI TWI fast mode
     Wire.begin();
 
     /** I2C bus test */
@@ -113,7 +114,7 @@ void setup() {
     ssd1306_fillScreen(0x00);
 
     /** Setup PPS interrupts */
-    PORTB |= (1 << PB2); // enable pullup resistor (MFP pin is open-drain)
+    PORTB |= (1 << PB2);  // enable pullup resistor (MFP pin is open-drain)
     // TODO: Check if rising or falling edge is correct in this case.
     // INT0 interrupts on rising edge
     MCUCR |= (1 << ISC01) | (1 << ISC00);
@@ -169,7 +170,7 @@ void loop() {
     } else if (busy_flags & BF_UARTRX) {
         /** Character received from UART link. */
         handle_uart_char(swuart_rx_char);
-        swuart_rx_char = '\0'; // consume character so we can take more.
+        swuart_rx_char = '\0';  // consume character so we can take more.
         busy_flags &= ~BF_UARTRX;
     }
 }

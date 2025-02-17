@@ -41,10 +41,13 @@ uint8_t int_from_bcd(uint8_t bcd) {
  * Sets all members of a DateTime object using
  * the buffered raw register data from the MCP7940N RTC.
  */
-void datetime_from_registers(Date* date, Time* time, const DateTimeRegisters& rg) {
+void datetime_from_registers(Date* date, Time* time,
+        const DateTimeRegisters& rg) {
     time->second() = int_from_bcd(rg.rtcsec & 127);  // mask out Bit 7 (ST)
     time->minute() = int_from_bcd(rg.rtcmin);
-    time->hour() = int_from_bcd(rg.rtchour & 31);  // mask out Bits 6 (12/24) and 5 (AM/PM)
+
+    // mask out Bit 6 (12/24) and 5 (AM/PM)
+    time->hour() = int_from_bcd(rg.rtchour & 31);
 
     date->day() = int_from_bcd(rg.rtcdate);
     date->month() = int_from_bcd(rg.rtcmth & 63);  // mask out Bit 5 (LPYR)
@@ -74,7 +77,6 @@ void tick_datetime_one_second(Date* date, Time* time) {
         uint8_t& field_value = time->field(field);
         field_value++;
         if (field_value <= time->field_max_value(field)) {
-            
             // no carry, operation complete
             break;
         }

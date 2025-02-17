@@ -34,7 +34,7 @@ enum {
 };
 
 // false: UART/OE pin used for UART
-// true: UART/OE pin used for OE 
+// true: UART/OE pin used for OE
 extern bool oe_mode;
 
 #endif  // INCLUDE_GLOBALS_H_

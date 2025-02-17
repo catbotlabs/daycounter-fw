@@ -23,7 +23,7 @@
 void cmd_watchdog_reset() {
     swuart_write(F("watchdog reset\r\n"));
     wdt_enable(WDTO_15MS);
-    while (true) {};
+    while (true) {}
 }
 
 void cmd_say_hello() {
@@ -40,7 +40,7 @@ void cmd_system_test() {
 
     /** Test the display by displaying all 8's */
     // DDRA for PA2 is set as output since we are in UART TX mode.
-    for (uint16_t i=30000; i!=0; i++) {
+    for (uint16_t i = 30000; i != 0; i++) {
         DisplayGlyphs gl{DIGIT_GLYPHS[8], DIGIT_GLYPHS[8]|1, DIGIT_GLYPHS[8]};
         display_glyphs_oe(gl);
     }
@@ -51,14 +51,14 @@ void cmd_system_test() {
 void cmd_datetime_dev() {
     Time t;
     volatile uint8_t val = 0;
-   // t.field_max_bound(val);
+    // t.field_max_bound(val);
     /*for (int i = DateTimeField::SECOND+1; i --> 0; ) {
         swuart_print_int(i);
         swuart_newline();
     }*/
-   Date date(val, val, val);
-   Time time(val, val, val);
-   tick_datetime_one_second(&date, &time);
+    Date date(val, val, val);
+    Time time(val, val, val);
+    tick_datetime_one_second(&date, &time);
 }
 
 void print_date(const Date& date) {

@@ -35,6 +35,5 @@ void setup_display();
  */
 void set_glyphs(int16_t count, DisplayGlyphs glyphs);
 void display_glyphs_oe(const DisplayGlyphs glyphs);
-//void display_glyphs_no_oe(const DisplayGlyphs glyphs);
 
 #endif  // LIB_DISPLAY_DISPLAY_H_
