@@ -11,6 +11,7 @@
 #include <unity.h>
 #include "assertions.h"
 #include "datetime.h"
+#include "bcd_tests.h"
 
 /** == Date-specific tests == */
 
@@ -317,7 +318,7 @@ void test_time_field_max_value() {
  * the raw register values read from the MCP7940N chip and
  * loads them into a Date and a Time object.
  *
- * @note: This implmentation uses 24-time only, so
+ * @note: This implementation uses 24-time only, so
  * the 12/24 bit is always 0, and the (AM/PM, HRTEN1) is
  * used for the hours field.
  */
@@ -378,6 +379,105 @@ void test_datetime_from_registers() {
     TEST_ASSERT_EQUAL__Time(expected_time, time);
     TEST_ASSERT_EQUAL__Date(expected_date, date);
     }
+}
+
+/**
+ * Test the update_registers_from_datetime function, which
+ * sets the timekeeping bits of the MCP7940N RTC given a
+ * Date and a Time object.
+*/
+void test_update_registers_from_datetime() {
+    {
+    // Original:  00:00:00 January  1,  00
+    //   Set to:  23:59:59 December 31, 99
+    DateTimeRegisters registers = {
+        .rtcsec  = 0b00000000,  // ST unset, TEN: 0, ONE: 0
+        .rtcmin  = 0b00000000,  // TEN: 0, ONE: 0
+        .rtchour = 0b00000000,  // TEN: 0, ONE: 0
+        .rtcdate = 0b00000001,  // TEN: 0, ONE: 1
+        .rtcmth  = 0b00100001,  // LPYR set, TEN: 0, ONE: 1
+        .rtcyear = 0b00000000,  // TEN: 0, ONE: 0
+    };
+
+    /** Verify that the original register values are as expected */
+    Date verify_date;
+    Time verify_time;
+    datetime_from_registers(&verify_date, &verify_time, registers);
+    TEST_ASSERT_EQUAL__Date(Date(1, 1, 0), verify_date);
+    TEST_ASSERT_EQUAL__Time(Time(0, 0, 0), verify_time);
+
+    /** Update the registers to the new date and time */
+    Time time(23, 59, 59);
+    Date date(12, 31, 99);
+    update_registers_from_datetime(&registers, date, time);
+
+    DateTimeRegisters expected_result = {
+        .rtcsec  = 0b01011001,  // ST unset, TEN: 5, ONE: 9
+        .rtcmin  = 0b01011001,  // TEN: 5, ONE: 9
+        .rtchour = 0b00100011,  // TEN: 2, ONE: 3
+        .rtcdate = 0b00110001,  // TEN: 3, ONE: 1
+        .rtcmth  = 0b00110010,  // LPYR set (untouched), TEN: 1, ONE: 2
+        .rtcyear = 0b10011001,  // TEN: 9, ONE: 9
+    };
+
+    /** Check that the registers were updated to the expected values */
+    TEST_ASSERT_EQUAL__DateTimeRegisters(expected_result, registers);
+    }
+
+    {
+    // Original:  23:47:47 July     17,  97
+    //   Set to:  02:03:04 October 29, 04
+    DateTimeRegisters registers = {
+        .rtcsec  = 0b11000111,  // ST set, TEN: 4, ONE: 7
+        .rtcmin  = 0b01000111,  // TEN: 4, ONE: 7
+        .rtchour = 0b01100011,  // (12/24) set for fun, TEN: 2, ONE: 3
+        .rtcdate = 0b00010111,  // TEN: 1, ONE: 7
+        .rtcmth  = 0b00000111,  // LPYR unset, TEN: 0, ONE: 7
+        .rtcyear = 0b10010111,  // TEN: 9, ONE: 7
+    };
+
+    /** Verify that the original register values are as expected */
+    Date verify_date;
+    Time verify_time;
+    datetime_from_registers(&verify_date, &verify_time, registers);
+    TEST_ASSERT_EQUAL__Date(Date(7, 17, 97), verify_date);
+    TEST_ASSERT_EQUAL__Time(Time(23, 47, 47), verify_time);
+
+    /** Update the registers to the new date and time */
+    Time time(2, 3, 4);
+    Date date(10, 29, 4);
+    update_registers_from_datetime(&registers, date, time);
+
+    DateTimeRegisters expected_result = {
+        .rtcsec  = 0b10000100,  // ST set, TEN: 0, ONE: 4
+        .rtcmin  = 0b00000011,  // TEN: 0, ONE: 3
+        .rtchour = 0b01000010,  // (12/24) still set, TEN: 0, ONE: 2
+        .rtcdate = 0b00101001,  // TEN: 2, ONE: 9
+        .rtcmth  = 0b00010000,  // LPYR unset (untouched), TEN: 1, ONE: 0
+        .rtcyear = 0b00000100,  // TEN: 0, ONE: 4
+    };
+
+    /** Check that the registers were updated to the expected values */
+    TEST_ASSERT_EQUAL__DateTimeRegisters(expected_result, registers);
+
+
+    /** Now let's check that update_registers_from_datetime can
+     *  clear all the remaining bits. */
+    update_registers_from_datetime(&registers, Date(1, 1, 0), Time(0, 0, 0));
+
+    DateTimeRegisters expected_final_result = {
+        .rtcsec  = 0b10000000,  // ST set, TEN: 0, ONE: 0
+        .rtcmin  = 0b00000000,  // TEN: 0, ONE: 0
+        .rtchour = 0b01000000,  // (12/24) still set, TEN: 0, ONE: 0
+        .rtcdate = 0b00000001,  // TEN: 0, ONE: 1
+        .rtcmth  = 0b00000001,  // LPYR unset (untouched), TEN: 0, ONE: 1
+        .rtcyear = 0b00000000,  // TEN: 0, ONE: 0
+    };
+
+    TEST_ASSERT_EQUAL__DateTimeRegisters(expected_final_result, registers);
+    }
+
+    // Testing is complete for update_registers_from_datetime!
 }
 
 /**
@@ -609,6 +709,10 @@ void test_tick_datetime_brute_four_hundred_million() {
 int main() {
     UNITY_BEGIN();
 
+    /** General-purpose function tests */
+    RUN_TEST(test_int_from_bcd);
+    RUN_TEST(test_bcd_from_int);
+
     /** Date-specific tests */
     RUN_TEST(test_is_leap_year);
     RUN_TEST(test_date_default_value);
@@ -626,6 +730,7 @@ int main() {
 
     /** Tests with Date and Time together */
     RUN_TEST(test_datetime_from_registers);
+    RUN_TEST(test_update_registers_from_datetime);
     RUN_TEST(test_tick_datetime_one_second);
     RUN_TEST(test_tick_datetime_brute_million);
 #ifdef DC_MAX_TESTING

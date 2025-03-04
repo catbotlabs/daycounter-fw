@@ -38,6 +38,27 @@ uint8_t int_from_bcd(uint8_t bcd) {
 }
 
 /**
+ * Return two-digit packed BCD byte from an integer from 0 to 99.
+ * 
+ * Since some of the MCP7940N RTC's timekeeping registers store
+ * configuration parameters in certain bits, some bit-masking may
+ * be necessary before using the result to set the register data.
+ * 
+ * @param num the given number, which must be between 0 and 99.
+ */
+uint8_t bcd_from_int(uint8_t num) {
+    return ((num / 10) << 4) | (num % 10);
+}
+
+/** 
+ * Timekeeping register masks. The zeroes are on bits
+ * that should not be used for timekeeping.
+ */
+#define TKMSK_RTCSEC  127  // RTCSEC: mask out Bit 7 (ST)
+#define TKMSK_RTCHOUR 63   // RTCHOUR: mask out Bit 6 (12/24)
+#define TKMSK_RTCMTH  31   // RTCMTH: mask out LPYR
+
+/**
  * Sets all members of a DateTime object using
  * the buffered raw register data from the MCP7940N RTC.
  * 
@@ -46,15 +67,43 @@ uint8_t int_from_bcd(uint8_t bcd) {
  */
 void datetime_from_registers(Date* date, Time* time,
         const DateTimeRegisters& rg) {
-    time->second() = int_from_bcd(rg.rtcsec & 127);  // mask out Bit 7 (ST)
+    time->second() = int_from_bcd(rg.rtcsec & TKMSK_RTCSEC);  // mask out Bit 7 (ST)
     time->minute() = int_from_bcd(rg.rtcmin);
 
     // mask out Bit 6 (12/24). Keep bit 5 (AM/PM,HRTEN1) since we're doing 24-hour time.
-    time->hour() = int_from_bcd(rg.rtchour & 63);
+    time->hour() = int_from_bcd(rg.rtchour & TKMSK_RTCHOUR);
 
     date->day() = int_from_bcd(rg.rtcdate);
-    date->month() = int_from_bcd(rg.rtcmth & 31);  // mask out Bit 5 (LPYR)
+    date->month() = int_from_bcd(rg.rtcmth & TKMSK_RTCMTH);  // mask out Bit 5 (LPYR)
     date->year() = int_from_bcd(rg.rtcyear);
+}
+
+/**
+ * Sets the timekeeping bits of the MCP7940N RTC using
+ * the values from a Date and a Time object.
+ * 
+ * We're not masking the RTCMIN, RTCDATE, and RTCYEAR registers
+ * because, a) The unimplented bits won't be set to 1 unless the
+ * Date/Time objects are out-of-bounds, which won't happen in normal
+ * operation, and, b) I'm pretty sure if you do write a 1 to them,
+ * nothing would happen anyway.
+ */
+void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
+        const Time& time) {
+    rg->rtcsec &= ~TKMSK_RTCSEC;    // clear timekeeping bits
+    rg->rtcsec |= bcd_from_int(time.second()) & TKMSK_RTCSEC;
+    
+    rg->rtcmin = bcd_from_int(time.minute());
+
+    rg->rtchour &= ~TKMSK_RTCHOUR;  // clear timekeeping bits
+    rg->rtchour |= bcd_from_int(time.hour()) & TKMSK_RTCHOUR;
+
+    rg->rtcdate = bcd_from_int(date.day());
+
+    rg->rtcmth &= ~TKMSK_RTCMTH;    // clear timekeeping bits
+    rg->rtcmth |= bcd_from_int(date.month()) & TKMSK_RTCMTH;
+
+    rg->rtcyear = bcd_from_int(date.year());
 }
 
 /**

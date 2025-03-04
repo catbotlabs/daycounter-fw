@@ -44,4 +44,24 @@
     TEST_ASSERT_EQUAL_MESSAGE(_Expected_Time_.second(), \
         _Actual_Time_.second(), "Seconds don't match.");}
 
+/**
+ * @brief Asserts that two of my DateTimeRegisters objects are equal.
+ */
+#define TEST_ASSERT_EQUAL__DateTimeRegisters(expected, actual) \
+    {const DateTimeRegisters _Expected_Regs_ = expected; \
+    const DateTimeRegisters _Actual_Regs_ = actual; \
+    TEST_ASSERT_EQUAL_MESSAGE(_Expected_Regs_.rtcsec, \
+        _Actual_Regs_.rtcsec, "RTCSEC mismatch."); \
+    TEST_ASSERT_EQUAL_MESSAGE(_Expected_Regs_.rtcmin, \
+        _Actual_Regs_.rtcmin, "RTCMIN mismatch."); \
+    TEST_ASSERT_EQUAL_MESSAGE(_Expected_Regs_.rtchour, \
+        _Actual_Regs_.rtchour, "RTCHOUR mismatch."); \
+    TEST_ASSERT_EQUAL_MESSAGE(_Expected_Regs_.rtcdate, \
+        _Actual_Regs_.rtcdate, "RTCDATE mismatch."); \
+    TEST_ASSERT_EQUAL_MESSAGE(_Expected_Regs_.rtcmth, \
+        _Actual_Regs_.rtcmth, "RTCMTH mismatch."); \
+    TEST_ASSERT_EQUAL_MESSAGE(_Expected_Regs_.rtcyear, \
+        _Actual_Regs_.rtcyear, "RTCYEAR mismatch.");}
+
+
 #endif  // TEST_TEST_DATETIME_ASSERTIONS_H_

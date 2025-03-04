@@ -226,12 +226,20 @@ struct DateTimeRegisters {
     uint8_t rtcyear;
 };
 
+#ifdef PIO_UNIT_TESTING  // Only expose for unit testing.
+uint8_t int_from_bcd(uint8_t bcd);
+uint8_t bcd_from_int(uint8_t num);
+#endif
+
 /**
  * Sets all members of a DateTime object using
  * the buffered raw register data from the MCP7940N RTC.
  */
 void datetime_from_registers(Date* date, Time* time,
     const DateTimeRegisters& rg);
+
+void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
+    const Time& time);
 
 uint8_t tick_datetime_one_second(Date* date, Time* time);
 
