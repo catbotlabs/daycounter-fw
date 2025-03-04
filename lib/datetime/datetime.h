@@ -233,6 +233,6 @@ struct DateTimeRegisters {
 void datetime_from_registers(Date* date, Time* time,
     const DateTimeRegisters& rg);
 
-void tick_datetime_one_second(Date* date, Time* time);
+uint8_t tick_datetime_one_second(Date* date, Time* time);
 
 #endif  // LIB_DATETIME_DATETIME_H_
