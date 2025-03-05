@@ -30,4 +30,9 @@ uint8_t setup_rtc();
  */
 void rtc_read_datetime(Date* date, Time* time);
 
+/**
+ * Write the information from the given Date and Time objects to the RTC.
+ */
+void rtc_write_datetime(const Date& date, const Time& time);
+
 #endif  // INCLUDE_RTC_H_

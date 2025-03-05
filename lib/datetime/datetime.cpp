@@ -155,3 +155,9 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
     return 6;
 }
 
+/**
+ * Remaining functionality to add:
+ *   - Time delta calculator function
+ *   - Date / Time specialty individual field increment/decrement functions
+ */
+

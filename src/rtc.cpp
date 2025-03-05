@@ -132,28 +132,84 @@ uint8_t setup_rtc() {
     return mod;
 }
 
-void rtc_read_datetime(Date* date, Time* time) {
-    DateTimeRegisters rg;
-
+/**
+ * Read the seven timekeeping registers of the MCP7940N RTC
+ * into the given DateTimeRegisters object.
+ * 
+ * @returns 0 on success, 1 on failure.
+ */
+bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
     /** Request to read 7 bytes starting at 0x00. */
     Wire.beginTransmission(RTC_ADDR);
-    Wire.write(0x00);
-    Wire.endTransmission();
+    Wire.write(0x00);  // start address to read from
+    if (Wire.endTransmission()) {
+        return 1;
+    }
+    
+    // Request to read 7 bytes
     Wire.requestFrom(RTC_ADDR, (uint8_t)7);
 
-    // Read the seven time-keeping registers.
+    // Put those bytes in the DateTimeRegisters object
+    for (int i=0; i<7; i++) {
+        *(reinterpret_cast<uint8_t*>(rg) + i) = Wire.read();
+    }
+    return 0;
+}
 
-    rg.rtcsec = Wire.read();
-    rg.rtcmin = Wire.read();
-    rg.rtchour = Wire.read();
-    Wire.read();  // discard RTCWKDAY
-    rg.rtcdate = Wire.read();
-    rg.rtcmth = Wire.read();
-    rg.rtcyear = Wire.read();
+/**
+ * Write the buffered registers in the given DateTimeRegisters
+ * object to the RTC's memory.
+ * 
+ * @returns 0 on success, 1 on failure.
+ */
+bool rtc_write_timekeeping_registers(const DateTimeRegisters& rg) {
+    Wire.beginTransmission(RTC_ADDR);
+    Wire.write(0x00);  // start address to write to
+    Wire.write(reinterpret_cast<const uint8_t*>(&rg), 7);  // send the register bytes
+    return Wire.endTransmission();
+}
 
+/**
+ * Read the date and time from the RTC and write their values
+ * to the given Date and Time objects.
+ */
+void rtc_read_datetime(Date* date, Time* time) {
+    DateTimeRegisters rg;
+    rtc_read_timekeeping_registers(&rg);
     datetime_from_registers(date, time, rg);
 }
 
-void rtc_write_datetime(Date* date, Time* time) {
+/**
+ * Set the RTC's current date and time to the given values.
+ * 
+ * This function will block for over a millisecond, as the
+ * oscillator must be stopped before writing the new date and time values.
+ */
+void rtc_write_datetime(const Date& date, const Time& time) {
     /** Oscillator must be stopped when writing date/time to RTC. */
+    uint8_t reg;
+
+    // Clear ST bit, don't care about contents of RTCSEC
+    if (rtc_write_byte(RTCSEC, 0)) {
+        return;
+    }
+
+    // Wait for OSCRUN to clear.
+    // If communication is broken
+    do {
+        delayMicroseconds(200);
+        rtc_read_byte(RTCWKDAY, &reg);
+    } while (reg & (1 << OSCRUN));
+
+    // Read current timekeeping registers
+    DateTimeRegisters registers;
+    rtc_read_timekeeping_registers(&registers);
+
+    // Write new time and date
+    update_registers_from_datetime(&registers, date, time);
+    rtc_write_timekeeping_registers(registers);
+
+    rtc_read_byte(RTCSEC, &reg);
+    reg |= (1 << ST);
+    rtc_write_byte(RTCSEC, reg);
 }

@@ -212,15 +212,16 @@ struct Time {
 
 /**
  * A buffer for the six of the MCP7940N time-keeping registers we're
- * using. (There is a seventh, RTCWKDAY, but we're not using it.)
+ * using. (RTCWKDAY is ignored except for being buffered for future writes.)
  * 
  * This abstractifies the DateTime code from the hardware enough
  * so the datetime_from_registers function can be tested.
  */
-struct DateTimeRegisters {
+struct __attribute__((packed)) DateTimeRegisters {
     uint8_t rtcsec;
     uint8_t rtcmin;
     uint8_t rtchour;
+    uint8_t rtcwkday;  // Unused & untested outside of I2C-interfacing code
     uint8_t rtcdate;
     uint8_t rtcmth;
     uint8_t rtcyear;

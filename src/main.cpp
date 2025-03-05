@@ -16,11 +16,15 @@
 #include "ui.h"
 #include "display.h"
 #include "rtc.h"
+#include "datetime.h"
 #include "commands.h"
 #include "glyphdefs.h"
 
 bool oe_mode = false;
 volatile uint8_t busy_flags = 0;
+
+Date running_date;
+Time running_time;
 
 /** Three-byte buffer for the digital display */
 DisplayGlyphs glyphs;
@@ -152,10 +156,13 @@ void setup() {
     //    ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
     //    ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
 
-    set_glyphs(230, glyphs);
+    rtc_read_datetime(&running_date, &running_time);
+    set_glyphs(running_time.second(), glyphs);
 
     /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
     swuart_mode_rx();
+
+    rtc_write_datetime(running_date, running_time);
 }
 
 void loop() {
@@ -166,6 +173,9 @@ void loop() {
 
     if (busy_flags & BF_PPS) {
         /** Pulse-per-second event received. */
+        tick_datetime_one_second(&running_date, &running_time);
+        set_glyphs(running_time.second(), glyphs);  // Show the seconds on the display
+
         busy_flags &= ~BF_PPS;
     } else if (busy_flags & BF_UARTRX) {
         /** Character received from UART link. */
