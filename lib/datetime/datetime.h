@@ -16,8 +16,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#undef SS  // Undefine clashing Arduino macro
-
 /**
  * Date and Time fields are stored in ascending order:
  *  [second, minute, hour] and [day, month, year]
@@ -111,10 +109,20 @@ class Date {
      * Returns true if the given year is a leap year.
      * 
      * @param in_year: The given year, from 0 to 99.
+     * @returns TRUE if year is a multiple of 4, UNLESS
+     * year is 0 (century year), then returns FALSE.
      */
     static inline bool is_leap_year(uint8_t in_year) {
-        return (in_year % 4) == 0;
+        return in_year && ((in_year % 4) == 0);
     }
+
+    /**
+     * Returns true if the "now" date is before the "ref" date.
+     */
+    static bool is_before(const Date& ref, const Date& now);
+
+    static uint16_t count_days_between(const Date& target,
+                                             const Date& now);
 
     /**
      * Get a reference to the given date field.

@@ -89,6 +89,12 @@ void cmd_read_rtc_time() {
     print_time(time);
 }
 
+void cmd_set_rtc__dev() {
+    Date new_date(2, 28, 4);
+    Time new_time(23, 59, 50);
+    rtc_write_datetime(new_date, new_time);
+}
+
 void handle_uart_char(char ch) {
     swuart_mode_tx();
     swuart_write(F("\r\n"));
@@ -108,6 +114,8 @@ void handle_uart_char(char ch) {
         case 'D':
           cmd_datetime_dev();
           break;
+        case 'S':
+          cmd_set_rtc__dev();
     }
     swuart_mode_rx();
 }

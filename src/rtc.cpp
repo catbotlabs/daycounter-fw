@@ -187,6 +187,8 @@ void rtc_read_datetime(Date* date, Time* time) {
  */
 void rtc_write_datetime(const Date& date, const Time& time) {
     /** Oscillator must be stopped when writing date/time to RTC. */
+
+    // Buffer for our RTCWKDAY and RTCSEC operations.
     uint8_t reg;
 
     // Clear ST bit, don't care about contents of RTCSEC
@@ -194,8 +196,9 @@ void rtc_write_datetime(const Date& date, const Time& time) {
         return;
     }
 
-    // Wait for OSCRUN to clear.
-    // If communication is broken
+    // Wait for OSCRUN to clear, meaning, wait for oscillator to stop.
+    // (If communication were broken, the code would lock up here.)
+    // MCP7940N datasheet states this should take a minimum of 1 ms.
     do {
         delayMicroseconds(200);
         rtc_read_byte(RTCWKDAY, &reg);
@@ -209,6 +212,7 @@ void rtc_write_datetime(const Date& date, const Time& time) {
     update_registers_from_datetime(&registers, date, time);
     rtc_write_timekeeping_registers(registers);
 
+    // Set the ST bit to start the oscillator again.
     rtc_read_byte(RTCSEC, &reg);
     reg |= (1 << ST);
     rtc_write_byte(RTCSEC, reg);

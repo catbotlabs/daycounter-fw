@@ -161,8 +161,6 @@ void setup() {
 
     /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
     swuart_mode_rx();
-
-    rtc_write_datetime(running_date, running_time);
 }
 
 void loop() {
@@ -171,6 +169,7 @@ void loop() {
         display_glyphs_oe(glyphs);
     } while (busy_flags == 0x00);
 
+    // An interrupt triggered a busy flag:
     if (busy_flags & BF_PPS) {
         /** Pulse-per-second event received. */
         tick_datetime_one_second(&running_date, &running_time);

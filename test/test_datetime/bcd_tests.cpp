@@ -9,10 +9,10 @@
  * (See the LICENSE file)
  */
 
-#include <stdint.h>
 #include "bcd_tests.h"
-#include "datetime.h"
+#include <stdint.h>
 #include <unity.h>
+#include "datetime.h"
 
 /* BCD-tens-digit-ify */
 #define T(d) (d << 4)

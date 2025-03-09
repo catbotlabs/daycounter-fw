@@ -23,6 +23,7 @@
  */
 
 #include "datetime.h"
+#include <math.h>
 
 /**
  * Interpret BCD packed this way as an integer from 0 to 99.
@@ -155,8 +156,63 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
     return 6;
 }
 
+
+/**
+ * Returns true if the "now" date is before the "ref" date.
+ */
+bool Date::is_before(const Date& ref, const Date& now) {
+    if (now.year() == ref.year()) {
+        // The year is the same, so compare the month.
+        if (now.month() == ref.month()) {
+            // The month is the same, so compare the day.
+            return now.day() < ref.day();
+        }
+        return now.month() < ref.month();
+    }
+
+    int8_t delta_years = int8_t(ref.year()) - now.year();
+    if (abs(delta_years) > 50) {
+        return now.year() > ref.year();
+    }
+    return now.year() < ref.year();
+}
+
+
+/**
+ * NOTE: set_glyph should have its out-of-bounds handling removed
+ * so its more like set_glyphs_from_count.
+ */
+
+
+/**
+ * Return the number of days between two dates. Always assumes that
+ * the "target" date is ahead of the "now" date.
+ * 
+ * (does this work with backwards counting??)
+ * 
+ * : I might remove backwards counting! :
+ */
+//uint16_t Date::count_days_between(const Date& target, const Date& now) {
+//}
+
+/**
+ * 
+ * @param target: The date we are counting towards
+ * @param now_d, now_t: Current date and time.
+ * @param TimeUnits: Enum of whether we are counting in hours, days, or weeks.
+ * @param count: Points to where the counted number will be stored.
+ * 
+ * @returns: 0 on success, count is between 0 and 999.
+ *           1 if now is ahead of target (negative count),
+ *           2 answer exceeds 999.
+ */
+uint8_t count_time_units_until(const Date& target, const Date& now_d,
+        const Time& now_t, uint8_t TimeUnits, uint16_t* count) {
+}
+
 /**
  * Remaining functionality to add:
+ *   - Date delta In_Future/In_Past calculator  / Check if delta is within display bounds
  *   - Time delta calculator function
  *   - Date / Time specialty individual field increment/decrement functions
  */
