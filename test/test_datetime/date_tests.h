@@ -20,5 +20,6 @@ void test_date_is_before();
 void test_date_field();
 void test_date_field_min_value();
 void test_date_field_max_value();
+void test_date_count_days_until();
 
 #endif  // TEST_TEST_DATETIME_DATE_TESTS_H_

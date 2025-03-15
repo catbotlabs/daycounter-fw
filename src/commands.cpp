@@ -95,6 +95,23 @@ void cmd_set_rtc__dev() {
     rtc_write_datetime(new_date, new_time);
 }
 
+void cmd_benchmark__date_count_days_until() {
+    // Longest possible forward span, I think...
+    Date now(1, 1, 4);     // January 1, XX04
+    Date target(12, 31, 54);  // December 31, XX54
+    swuart_write(F("b\r\n"));
+    uint16_t count = now.count_days_until(target);
+    swuart_write(F("a\r\n"));
+    swuart_write(F("post-benchmark, count: "));
+    swuart_print_int(count);
+    swuart_newline();
+}
+
+/**
+ * Process a single character received from the software UART interface.
+ * 
+ * This is our chance to respond and/or run a command.
+ */
 void handle_uart_char(char ch) {
     swuart_mode_tx();
     swuart_write(F("\r\n"));
@@ -116,6 +133,8 @@ void handle_uart_char(char ch) {
           break;
         case 'S':
           cmd_set_rtc__dev();
+        case 'b':
+          cmd_benchmark__date_count_days_until();
     }
     swuart_mode_rx();
 }

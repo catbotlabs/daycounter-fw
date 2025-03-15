@@ -60,6 +60,19 @@ constexpr auto ATF_SECOND = AscendingTimeField::SECOND;
 constexpr auto ATF_MINUTE = AscendingTimeField::MINUTE;
 constexpr auto ATF_HOUR = AscendingTimeField::HOUR;
 
+/** Return value for count_time_units_until */
+enum class TimeCountReturnValue {
+    OK,          /** Result is usable and resides within expected limits */
+    NEGATIVE,    /** Result would be negative */
+    OVERFLOW     /** Result would exceed 999  */
+};
+
+/** Whether we are counting in days, weeks, or hours ?? */
+enum class TimeCountUnit {
+    DAY,
+    WEEK,
+    HOUR
+};
 
 /**
  * The number of days in each month, before accounting for leap years.
@@ -119,10 +132,9 @@ class Date {
     /**
      * Returns true if the "now" date is before the "ref" date.
      */
-    static bool is_before(const Date& ref, const Date& now);
+    static bool is_before(const Date& now, const Date& ref);
 
-    static uint16_t count_days_between(const Date& target,
-                                             const Date& now);
+    uint16_t count_days_until(const Date& target);
 
     /**
      * Get a reference to the given date field.

@@ -91,18 +91,73 @@ void test_date_accessors() {
 
 /**
  * Tests the Date::is_before function.
+ * 
+ * TODO: describe further.
  */
 void test_date_is_before() {
     Date ref;
 
-    ref = Date(0, 0, 0);
-    TEST_ASSERT_FALSE(Date::is_before(ref,  Date(0, 0, 0)));
-    TEST_ASSERT_FALSE(Date::is_before(ref,  Date(0, 0, 1)));
-    TEST_ASSERT_FALSE(Date::is_before(ref,  Date(0, 0, 49)));
-    TEST_ASSERT_FALSE(Date::is_before(ref,  Date(0, 0, 50)));
+    ref = Date(1, 1, 0);  // January 1, XX00
 
-    TEST_ASSERT_TRUE(Date::is_before(ref,  Date(0, 0, 51)));
+    /** These dates should NOT be counted as before January 1, XX00 */
+    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 0), ref));   // equal date
+    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 1), ref));   // year after
+    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 49), ref));  // 49 years after
+    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 50), ref));  // 50 years after
+
+    /** These dates SHOULD be counted as before January 1, XX00 */
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 51), ref));  // wrap, 49 before
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 52), ref));  // 48 before
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 95), ref));  // 5 years before
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 99), ref));  // year before
+
+
+    ref = Date(7, 20, 30);  // July 20, XX30
+
+    // Dates BEFORE ref
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 23, 30), ref));  // earlier month
+    TEST_ASSERT_TRUE(Date::is_before(Date(7, 1, 30), ref));   // same month
+    TEST_ASSERT_TRUE(Date::is_before(Date(7, 19, 30), ref));  // same month
+
+    // EQUAL with ref
+    TEST_ASSERT_FALSE(Date::is_before(Date(7, 20, 30), ref));
+
+    // Dates AFTER ref
+    TEST_ASSERT_FALSE(Date::is_before(Date(7, 21, 30), ref));  // same month
+    TEST_ASSERT_FALSE(Date::is_before(Date(7, 31, 30), ref));  // same month
+    TEST_ASSERT_FALSE(Date::is_before(Date(8, 5, 30), ref));   // next month
+    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 31), ref));   // next year
+
+    // Year wrap cutoff point: 50 years
+    TEST_ASSERT_FALSE(Date::is_before(Date(12, 1, 80), ref));  // 50 years after
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 81), ref));    // 49 years before
+
+
+    // A date in the middle of the century.
+    ref = Date(3, 14, 50);  // March 14, XX50
+
+    // +/- 1 year
+    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 51), ref));
+    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 49), ref));
+
+    // +/- 30 years
+    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 80), ref));
+    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 20), ref));
+
+    // +/- 49 years
+    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 99), ref));
+    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 1), ref));
+
+    // +/- 50 years
+    // delta == 50 years: no wrap.
+    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 0), ref));
+
+    // +/- 55 years -> -/+ 45 years
+    // delta > 50 years: yes wrap.
+    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 95), ref));
+    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 5), ref));
 }
+
 
 /**
  * Tests the Date::field function.
@@ -240,4 +295,50 @@ void test_date_field_max_value() {
     // Maximum value of Year field is always 99.
     date = Date(1, 1, 1);
     TEST_ASSERT_EQUAL(99, date.field_max_value(ADF_YEAR));
+}
+
+/** Tests Date::count_days_until */
+void test_date_count_days_until() {
+    // test equal date (zero span)
+    Date    now(1, 1, 4);   // January 1, XX00
+    Date target(1, 1, 4);   // January 1, XX00
+    TEST_ASSERT_EQUAL(0, now.count_days_until(target));
+    
+    // test same month
+    target = Date(1, 31, 4);  // January 31, XX04
+    TEST_ASSERT_EQUAL(30, now.count_days_until(target));
+
+    // test next month
+    target = Date(2, 1, 4);  // February 1, XX04
+    TEST_ASSERT_EQUAL(31, now.count_days_until(target));
+
+    // test 2 months, leap year
+    target = Date(3, 1, 4);  // March 1, XX04
+    TEST_ASSERT_EQUAL(60, now.count_days_until(target));
+
+    // test different year
+    now    = Date(7, 15, 55);     // July  15, XX56
+    target = Date(4, 15, 56);  // April 15, XX56
+    TEST_ASSERT_EQUAL(275, now.count_days_until(target));
+    
+    // test different year, same month, same day
+    now    = Date(12, 31, 60);     // December 31, XX60
+    target = Date(12, 31, 63);  // December 31, XX63
+    TEST_ASSERT_EQUAL(1095, now.count_days_until(target));
+
+    // test cross-century
+    now    = Date(9, 2, 98);     // September 2, XX98
+    target = Date(5, 30, 7);  // March 30, XX07 (next century)
+    TEST_ASSERT_EQUAL(3191, now.count_days_until(target));
+
+    // test really long spans:
+    // Longest possible forward span, I think...
+    now    = Date(1, 1, 4);     // January 1, XX04
+    target = Date(12, 31, 54);  // December 31, XX54
+    TEST_ASSERT_EQUAL(18627, now.count_days_until(target));
+
+    // Long, cross-century span
+    now    = Date(7, 7, 77);     // July 7, XX77
+    target = Date(2, 22, 22);    // next century, SUPER TWOSDAY
+    TEST_ASSERT_EQUAL(16300, now.count_days_until(target));
 }

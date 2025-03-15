@@ -23,7 +23,7 @@
  */
 
 #include "datetime.h"
-#include <math.h>
+#include <stdlib.h>
 
 /**
  * Interpret BCD packed this way as an integer from 0 to 99.
@@ -142,7 +142,7 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
         // then go to the next field.
     }
 
-    // Increment date by one, starting by seconds
+    // Increment date by one, starting with day of month
     for (uint8_t i = 0; i < 3; i++) {
         const AscendingDateField field = static_cast<AscendingDateField>(i);
         uint8_t& field_value = date->field(field);
@@ -160,21 +160,33 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
 /**
  * Returns true if the "now" date is before the "ref" date.
  */
-bool Date::is_before(const Date& ref, const Date& now) {
+bool Date::is_before(const Date& now, const Date& ref) {
     if (now.year() == ref.year()) {
         // The year is the same, so compare the month.
         if (now.month() == ref.month()) {
             // The month is the same, so compare the day.
-            return now.day() < ref.day();
+            return now.day() < ref.day();  // is the day before the ref?
         }
-        return now.month() < ref.month();
+        return now.month() < ref.month();  // is the month before the ref?
     }
 
+    // Signed delta years:
     int8_t delta_years = int8_t(ref.year()) - now.year();
     if (abs(delta_years) > 50) {
-        return now.year() > ref.year();
+        /**
+         * If the distance (up or down) between the given year
+         * and the ref year exceeds 50 years, then we treat the
+         * ref year as being in the next century.
+         * 
+         * Since the years now "wrap" around the century, we flip
+         * the comparison since the years are now approaching ref
+         * from the other direction.
+         */
+        return now.year() > ref.year();  // Years wrap around century
     }
-    return now.year() < ref.year();
+
+    // No wrapping, simple behavior:
+    return now.year() < ref.year();  // is the year before the ref?
 }
 
 
@@ -185,15 +197,69 @@ bool Date::is_before(const Date& ref, const Date& now) {
 
 
 /**
- * Return the number of days between two dates. Always assumes that
- * the "target" date is ahead of the "now" date.
+ * @brief Returns the number of days until the given date.
  * 
- * (does this work with backwards counting??)
+ * @note Always assumes that the "target" date is ahead of
+ * "this" date, so do not use this method to count backwards!
  * 
- * : I might remove backwards counting! :
+ * THIS FUNCTION IS NOT SUPER OPTIMIZED:
+ * Takes one loop iteration for each month that has to go by.
+ * Maximum iterations: 50 (years) * 12 = 600 iterations.
+ * 
+ * After benchmarking, this function takes about 2 milliseconds
+ * worst case (counting a full 50 year time delta). That's
+ *  *probably* good enough for now, but I may come back and
+ * optimize this if it's too much of a hangup.
+ * 
+ * Instead of iterating through months,
+ * I suppose the optimized algorithm would be to:
+ *  - Count days till beginning of next month
+ *  - Count days till beginning of next year
+ *  - Determine how many leap years are between now and the beginning
+ *     of the target year.
+ *  - Count how many days are in those years (365 in a year, or 366
+ *     in a leap year)
+ *  - Count days till beginning of target month
+ *  - Count days till target date
+ * 
+ * It may also be necessary to add a "tick_date_one_day" function,
+ * kind of like tick_datetime_one_second, to properly increment by one
+ * day while wrapping.
  */
-//uint16_t Date::count_days_between(const Date& target, const Date& now) {
-//}
+uint16_t Date::count_days_until(const Date& target) {
+    // Copy of "this" date, which will be incremented until target is reached.
+    Date now = *this;  
+
+    // The going count of days.
+    uint16_t count = 0;
+
+    // While target year and month haven't been reached
+    while (!(now.year() == target.year() && now.month() == target.month())) {
+        // Add the remaining days of this month to the count.
+        count += now.field_max_value(ADF_DAY) - now.day() + 1;
+        
+        // Set "now" to first day of the NEXT month.
+        now.day() = now.field_min_value(ADF_DAY);
+        now.month()++;
+
+        // Did we go past December?
+        if (now.month() > now.field_max_value(ADF_MONTH)) {
+            // Wrap the month back to January.
+            now.month() = now.field_min_value(ADF_MONTH);
+            now.year()++;
+
+            // Did we go past the year XX99?
+            if (now.year() > now.field_max_value(ADF_YEAR)) {
+                // Wrap the year back to XX00
+                now.year() = now.field_min_value(ADF_YEAR);
+            }
+        }
+    }
+
+    // "now" and "target" are on the same month of the same year.
+    // Return the going count plus the number of days from "now" to "target".
+    return count + (target.day() - now.day());
+}
 
 /**
  * 
@@ -206,9 +272,10 @@ bool Date::is_before(const Date& ref, const Date& now) {
  *           1 if now is ahead of target (negative count),
  *           2 answer exceeds 999.
  */
-uint8_t count_time_units_until(const Date& target, const Date& now_d,
-        const Time& now_t, uint8_t TimeUnits, uint16_t* count) {
-}
+/*TimeUntilReturnValue count_time_units_until(const Date& target,
+        const Date& now_d, const Time& now_t,
+        uint8_t TimeUnits, uint16_t* count) {
+}*/
 
 /**
  * Remaining functionality to add:

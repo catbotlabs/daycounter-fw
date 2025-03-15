@@ -430,6 +430,7 @@ int main() {
     RUN_TEST(test_date_field);
     RUN_TEST(test_date_field_min_value);
     RUN_TEST(test_date_field_max_value);
+    RUN_TEST(test_date_count_days_until);
 
     /** Time-specific tests */
     /** From time_tests.cpp */
