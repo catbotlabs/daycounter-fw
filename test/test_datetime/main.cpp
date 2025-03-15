@@ -35,8 +35,8 @@ void test_datetime_from_registers() {
 
     /** Test: low typical values, tens > 0 */
     {
-    const Time expected_time(12, 13, 34); // TIME: 12:23:34
-    const Date expected_date(12, 11, 13); // DATE: December 11, XX13
+    const Time expected_time(12, 13, 34);  // TIME: 12:23:34
+    const Date expected_date(12, 11, 13);  // DATE: December 11, XX13
     DateTimeRegisters rg = {
         .rtcsec  = 0b00110100,   // ST: true, TEN: 3, ONE: 4
         .rtcmin  = 0b00010011,   // TEN: 2, ONE: 3
@@ -331,7 +331,7 @@ void test_tick_datetime_brute_million() {
     Time time = Time(4, 30, 1);  // 04:30:01
 
     // Tick 1,000,000 seconds.
-    for (uint64_t i=0; i<1000000; i++) {
+    for (uint64_t i = 0; i < 1000000; i++) {
         Date prev_date = date;
         Time prev_time = time;
         uint8_t ret = tick_datetime_one_second(&date, &time);
@@ -382,7 +382,7 @@ void test_tick_datetime_brute_four_hundred_million() {
     Time time = Time(15, 1, 33);  // 15:01:33
 
     // Tick 400,000,000 seconds.
-    for (uint64_t i=0; i<400000000; i++) {
+    for (uint64_t i = 0; i < 400000000; i++) {
         Date prev_date = date;
         Time prev_time = time;
         uint8_t ret = tick_datetime_one_second(&date, &time);

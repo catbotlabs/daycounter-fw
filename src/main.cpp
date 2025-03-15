@@ -173,7 +173,9 @@ void loop() {
     if (busy_flags & BF_PPS) {
         /** Pulse-per-second event received. */
         tick_datetime_one_second(&running_date, &running_time);
-        set_glyphs(running_time.second(), glyphs);  // Show the seconds on the display
+
+        /** Show the seconds on the display */
+        set_glyphs(running_time.second(), glyphs);
 
         busy_flags &= ~BF_PPS;
     } else if (busy_flags & BF_UARTRX) {

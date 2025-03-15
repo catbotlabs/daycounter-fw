@@ -3,6 +3,15 @@
  * @brief Portable code for packing, unpacking, and manipulating
  * date and time values.
  * 
+ * Part of the CatBotLabs K001 Day Counter firmware.
+ * 
+ * Copyright (c) 2025, Winston Malinowski
+ * This source code is provided under the terms of the MIT License.
+ * (See the LICENSE file)
+ *
+ */
+
+/** 
  * @details This DateTime code implements the following functions:
  *   - Reading DateTime object from raw RTC registers
  *   - Writing DateTime object to raw RTC registers
@@ -14,16 +23,10 @@
  * This code is all abstract, as in, it does not interact with the MCU or RTC's
  * hardware directly. Thus, all the above functions are portable enough to
  * be unit tested on a native platform.
- * 
- * Part of the CatBotLabs K001 Day Counter firmware.
- * 
- * Copyright (c) 2025, Winston Malinowski
- * This source code is provided under the terms of the MIT License.
- * (See the LICENSE file)
  */
 
 #include "datetime.h"
-#include <stdlib.h>
+#include <stdlib.h>  /** for abs() */
 
 /**
  * Interpret BCD packed this way as an integer from 0 to 99.
@@ -68,14 +71,14 @@ uint8_t bcd_from_int(uint8_t num) {
  */
 void datetime_from_registers(Date* date, Time* time,
         const DateTimeRegisters& rg) {
-    time->second() = int_from_bcd(rg.rtcsec & TKMSK_RTCSEC);  // mask out Bit 7 (ST)
+    /* RTCSEC: Mask out Bit 7 (ST) */
+    time->second() = int_from_bcd(rg.rtcsec & TKMSK_RTCSEC);
     time->minute() = int_from_bcd(rg.rtcmin);
-
-    // mask out Bit 6 (12/24). Keep bit 5 (AM/PM,HRTEN1) since we're doing 24-hour time.
+    /* RTCHOUR: Mask out Bit 6 (12/24), but keep Bit 5 (AM/PM,HRTEN1). */
     time->hour() = int_from_bcd(rg.rtchour & TKMSK_RTCHOUR);
-
     date->day() = int_from_bcd(rg.rtcdate);
-    date->month() = int_from_bcd(rg.rtcmth & TKMSK_RTCMTH);  // mask out Bit 5 (LPYR)
+    /* RTCMTH: Mask out Bit 5 (LPYR) */
+    date->month() = int_from_bcd(rg.rtcmth & TKMSK_RTCMTH);
     date->year() = int_from_bcd(rg.rtcyear);
 }
 
@@ -93,7 +96,7 @@ void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
         const Time& time) {
     rg->rtcsec &= ~TKMSK_RTCSEC;    // clear timekeeping bits
     rg->rtcsec |= bcd_from_int(time.second()) & TKMSK_RTCSEC;
-    
+
     rg->rtcmin = bcd_from_int(time.minute());
 
     rg->rtchour &= ~TKMSK_RTCHOUR;  // clear timekeeping bits
@@ -228,7 +231,7 @@ bool Date::is_before(const Date& now, const Date& ref) {
  */
 uint16_t Date::count_days_until(const Date& target) {
     // Copy of "this" date, which will be incremented until target is reached.
-    Date now = *this;  
+    Date now = *this;
 
     // The going count of days.
     uint16_t count = 0;
@@ -237,7 +240,7 @@ uint16_t Date::count_days_until(const Date& target) {
     while (!(now.year() == target.year() && now.month() == target.month())) {
         // Add the remaining days of this month to the count.
         count += now.field_max_value(ADF_DAY) - now.day() + 1;
-        
+
         // Set "now" to first day of the NEXT month.
         now.day() = now.field_min_value(ADF_DAY);
         now.month()++;

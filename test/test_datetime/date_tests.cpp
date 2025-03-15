@@ -130,7 +130,7 @@ void test_date_is_before() {
 
     // Year wrap cutoff point: 50 years
     TEST_ASSERT_FALSE(Date::is_before(Date(12, 1, 80), ref));  // 50 years after
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 81), ref));    // 49 years before
+    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 81), ref));   // 49 years before
 
 
     // A date in the middle of the century.
@@ -303,7 +303,7 @@ void test_date_count_days_until() {
     Date    now(1, 1, 4);   // January 1, XX00
     Date target(1, 1, 4);   // January 1, XX00
     TEST_ASSERT_EQUAL(0, now.count_days_until(target));
-    
+
     // test same month
     target = Date(1, 31, 4);  // January 31, XX04
     TEST_ASSERT_EQUAL(30, now.count_days_until(target));
@@ -320,7 +320,7 @@ void test_date_count_days_until() {
     now    = Date(7, 15, 55);     // July  15, XX56
     target = Date(4, 15, 56);  // April 15, XX56
     TEST_ASSERT_EQUAL(275, now.count_days_until(target));
-    
+
     // test different year, same month, same day
     now    = Date(12, 31, 60);     // December 31, XX60
     target = Date(12, 31, 63);  // December 31, XX63

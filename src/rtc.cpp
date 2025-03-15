@@ -145,12 +145,12 @@ bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
     if (Wire.endTransmission()) {
         return 1;
     }
-    
+
     // Request to read 7 bytes
     Wire.requestFrom(RTC_ADDR, (uint8_t)7);
 
     // Put those bytes in the DateTimeRegisters object
-    for (int i=0; i<7; i++) {
+    for (int i = 0; i < 7; i++) {
         *(reinterpret_cast<uint8_t*>(rg) + i) = Wire.read();
     }
     return 0;
@@ -164,8 +164,10 @@ bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
  */
 bool rtc_write_timekeeping_registers(const DateTimeRegisters& rg) {
     Wire.beginTransmission(RTC_ADDR);
-    Wire.write(0x00);  // start address to write to
-    Wire.write(reinterpret_cast<const uint8_t*>(&rg), 7);  // send the register bytes
+    Wire.write(0x00);  // 0x00 is the starting address we're writing to.
+
+    /** Send the register bytes to the RTC */
+    Wire.write(reinterpret_cast<const uint8_t*>(&rg), 7);
     return Wire.endTransmission();
 }
 

@@ -27,8 +27,8 @@
  * Sets all three glyphs to \c 0xaa, (0b10101010, which
  * doesn't match any of our glyph values.
  */
-void reset_gl(DisplayGlyphs& gl) {
-    gl[2] = gl[1] = gl[0] = 0xaa;
+void reset_gl(DisplayGlyphs* gl) {
+    *gl[2] = *gl[1] = *gl[0] = 0xaa;
 }
 
 /**
@@ -64,50 +64,50 @@ void test_set_glyphs() {
     // 9
     set_glyphs(9, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, GLYPH_NONE | 1, DG[9]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 23
     set_glyphs(23, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, DG[2] | 1, DG[3]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 88
     set_glyphs(88, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, DG[8] | 1, DG[8]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 119
     set_glyphs(119, gl);
     TEST_ARR3_EQUAL(gl, DG[1], DG[1] | 1, DG[9]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 799
     set_glyphs(799, gl);
     TEST_ARR3_EQUAL(gl, DG[7], DG[9] | 1, DG[9]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
-    
+
     /** Typical values with 1s and 0s */
 
     // 0
     set_glyphs(0, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, GLYPH_NONE | 1, DG[0]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 1
     set_glyphs(1, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, GLYPH_NONE | 1, DG[1]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 10
     set_glyphs(10, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, DG[1] | 1, DG[0]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 100
     set_glyphs(100, gl);
     TEST_ARR3_EQUAL(gl, DG[1], DG[0] | 1, DG[0]);
-    reset_gl(gl);
+    reset_gl(&gl);
 
 
     /** Values below zero: Glyphs should be "  -" */
@@ -115,17 +115,17 @@ void test_set_glyphs() {
     // -1
     set_glyphs(-1, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, GLYPH_NONE | 1, GLYPH_DASH);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // -200
     set_glyphs(-200, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, GLYPH_NONE | 1, GLYPH_DASH);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // -980
     set_glyphs(-980, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_NONE, GLYPH_NONE | 1, GLYPH_DASH);
-    reset_gl(gl);
+    reset_gl(&gl);
 
 
     /** Values above 999: Glyphs should be "---" */
@@ -133,12 +133,12 @@ void test_set_glyphs() {
     // 1000
     set_glyphs(1000, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_DASH, GLYPH_DASH | 1, GLYPH_DASH);
-    reset_gl(gl);
+    reset_gl(&gl);
 
     // 9999
     set_glyphs(9999, gl);
     TEST_ARR3_EQUAL(gl, GLYPH_DASH, GLYPH_DASH | 1, GLYPH_DASH);
-    reset_gl(gl);
+    reset_gl(&gl);
 }
 
 int main() {
