@@ -94,42 +94,43 @@ bool rtc_write_byte(uint8_t addr, uint8_t data) {
  *          1 if any registers were adjusted.
  *          2 if failed to communicate with RTC.
  */
-uint8_t setup_rtc() {
-    bool mod = false;
+RTCInitResult setup_rtc() {
+    RTCInitResult result = RTCInitResult::OK;
 
     // one-byte read buffer.
     uint8_t reg = 0;
 
     /** RTCSEC: Make sure ST is set. */
     if (rtc_read_byte(RTCSEC, &reg)) {
-        return 2;
+        return RTCInitResult::FAIL;
     }
     if (!(reg & (1 << ST))) {
         rtc_write_byte(RTCSEC, reg | (1 << ST));
-        mod = true;
+        result = RTCInitResult::UNSET;
     }
 
     /** CONTROL: Make sure SQWEN is set. */
     // SQWEN is the only bit we want set in CONTROL
     const uint8_t wanted_control_reg = (1 << SQWEN);
     if (rtc_read_byte(CONTROL, &reg)) {
-        return 2;
+        return RTCInitResult::FAIL;
     }
     if (reg != wanted_control_reg) {
         rtc_write_byte(CONTROL, wanted_control_reg);
-        mod = true;
+        result = RTCInitResult::UNSET;
     }
 
     /** RTCWKDAY: Make sure VBATEN is set. */
     if (rtc_read_byte(RTCWKDAY, &reg)) {
-        return 2;
+        return RTCInitResult::FAIL;
     }
     if (!(reg & (1 << VBATEN))) {
         rtc_write_byte(RTCWKDAY, reg | (1 << VBATEN));
+        result = RTCInitResult::UNSET;
     }
 
     /** Return whether any of the registers were modified. */
-    return mod;
+    return result;
 }
 
 /**

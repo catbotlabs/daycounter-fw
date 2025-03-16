@@ -16,6 +16,12 @@
 #include <stdint.h>
 #include "datetime.h"
 
+enum class RTCInitResult {
+    OK,     /** RTC registers are set as expected */
+    UNSET,  /** RTC registers had to be set. (RTC was reset, time is unset) */
+    FAIL,   /** Failed to communicate with the RTC. */
+};
+
 /**
  * @brief Makes sure the RTC's registers are set properly.
 
@@ -23,7 +29,7 @@
  *          1 if any registers were adjusted.
  *          2 if failed to communicate with RTC.
  */
-uint8_t setup_rtc();
+RTCInitResult setup_rtc();
 
 /**
  * Populate a DateTime object with the date and time from the RTC.

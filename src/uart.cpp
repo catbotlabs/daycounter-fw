@@ -174,7 +174,7 @@ ISR(ANA_COMP_vect) {
 void setup_swuart() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Analog comparator: Set positive input to bandgap voltage,
-        // trigger interrupts on rising ACO edge.
+        // trigger interrupts on rising AIN1 edge.
         ACSR |= (1 << ACBG) | (1 << ACIS0) | (1 << ACIS1);
         swuart_mode_rx();
     }  // ATOMIC_BLOCK

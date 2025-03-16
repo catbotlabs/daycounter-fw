@@ -18,6 +18,7 @@
 #include "ui.h"
 #include "datetime.h"
 #include "rtc.h"
+#include "buttons.h"
 
 // 'r'
 void cmd_watchdog_reset() {
@@ -95,15 +96,11 @@ void cmd_set_rtc__dev() {
     rtc_write_datetime(new_date, new_time);
 }
 
-void cmd_benchmark__date_count_days_until() {
-    // Longest possible forward span, I think...
-    Date now(1, 1, 4);     // January 1, XX04
-    Date target(12, 31, 54);  // December 31, XX54
-    swuart_write(F("b\r\n"));
-    uint16_t count = now.count_days_until(target);
-    swuart_write(F("a\r\n"));
-    swuart_write(F("post-benchmark, count: "));
-    swuart_print_int(count);
+// 'b'
+void cmd_buttons__dev() {
+    uint8_t state = read_button_states();
+    swuart_write("state: ");
+    swuart_print_int(state);
     swuart_newline();
 }
 
@@ -134,7 +131,7 @@ void handle_uart_char(char ch) {
         case 'S':
           cmd_set_rtc__dev();
         case 'b':
-          cmd_benchmark__date_count_days_until();
+          cmd_buttons__dev();
     }
     swuart_mode_rx();
 }

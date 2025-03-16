@@ -12,13 +12,14 @@
 #include <Wire.h>
 #include <avr/wdt.h>
 #include "globals.h"
-#include "uart.h"
-#include "ui.h"
-#include "display.h"
 #include "rtc.h"
 #include "datetime.h"
-#include "commands.h"
+#include "display.h"
 #include "glyphdefs.h"
+#include "buttons.h"
+#include "ui.h"
+#include "uart.h"
+#include "commands.h"
 
 bool oe_mode = false;
 volatile uint8_t busy_flags = 0;
@@ -90,6 +91,9 @@ void setup() {
         PORTA |= (1 << PA2);  // OE pin: high (disable display)
     }
 
+    /** TODO: Should this enable PCINT interrupts? Probably not. */
+    setup_buttons();
+
     /** Initialize pins that drive the digital display. */
     setup_display();
 
@@ -127,7 +131,8 @@ void setup() {
 
     /** Setup RTC */
     switch (setup_rtc()) {
-      case 2:
+      case RTCInitResult::FAIL:
+        /** Failed to communicate with RTC */
         ssd1306_clearScreen();
         ssd1306_setFixedFont(digital_font5x7);
         ssd1306_printFixedN(0, 20, "check RTC", STYLE_NORMAL, 1);
@@ -136,11 +141,11 @@ void setup() {
         glyphs[0] = 0x58;  // 'c'
         fatal_infinite_display_loop(F("failed to communicate with RTC"));
         break;
-      case 1:
+      case RTCInitResult::UNSET:
         swuart_write(F("info: RTC registers adjusted\r\n"));
         /** Time is unset! */
         break;
-      case 0:
+      case RTCInitResult::OK:
         swuart_write(F("info: RTC okay\r\n"));
     }
 
@@ -155,6 +160,8 @@ void setup() {
     }
     //    ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
     //    ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
+
+    /** TODO: Enable PCINT interrupts? */
 
     rtc_read_datetime(&running_date, &running_time);
     set_glyphs(running_time.second(), glyphs);
@@ -183,5 +190,8 @@ void loop() {
         handle_uart_char(swuart_rx_char);
         swuart_rx_char = '\0';  // consume character so we can take more.
         busy_flags &= ~BF_UARTRX;
+    } else if (busy_flags & BF_DEBOUNCE) {
+        /** Debounce timer elapsed */
+//        uint8_t button_state = read_button_states();
     }
 }
