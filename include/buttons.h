@@ -9,8 +9,8 @@
  * (See the LICENSE file)
  */
 
-#ifndef DCFW_INCLUDE_BUTTONS_H_
-#define DCFW_INCLUDE_BUTTONS_H_
+#ifndef INCLUDE_BUTTONS_H_
+#define INCLUDE_BUTTONS_H_
 
 #include <avr/io.h>
 
@@ -38,4 +38,4 @@ void setup_buttons();
  */
 uint8_t read_button_states();
 
-#endif  // DCFW_INCLUDE_BUTTONS_H_
+#endif  // INCLUDE_BUTTONS_H_

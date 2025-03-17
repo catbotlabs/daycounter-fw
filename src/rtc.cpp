@@ -10,7 +10,8 @@
  */
 
 #include "rtc.h"
-#include <Wire.h>
+#include <util/delay.h>   // for _delay_us()
+#include <USIWire.h>
 #include <uart.h>
 #include "datetime.h"
 
@@ -203,7 +204,7 @@ void rtc_write_datetime(const Date& date, const Time& time) {
     // (If communication were broken, the code would lock up here.)
     // MCP7940N datasheet states this should take a minimum of 1 ms.
     do {
-        delayMicroseconds(200);
+        _delay_us(400);
         rtc_read_byte(RTCWKDAY, &reg);
     } while (reg & (1 << OSCRUN));
 

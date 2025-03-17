@@ -219,7 +219,7 @@ void swuart_write(const char* out) {
 }
 
 // write until terminating character, strings using F().
-void swuart_write(const __FlashStringHelper* fptr) {
+void swuart_write(const FlashString* fptr) {
     PGM_P pgm_ptr = reinterpret_cast<PGM_P>(fptr);
     while (char out = pgm_read_byte(pgm_ptr++)) {
         tx_byte_sw_uart(out);

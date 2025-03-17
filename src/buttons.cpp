@@ -40,7 +40,7 @@ void setup_buttons() {
     ADCSRA |= (1 << ADEN);
 
     /** Set the pullup resistor on BTSET */
-    PORTA |= (1 << PA1); 
+    PORTA |= (1 << PA1);
 
     /** Enable all PCINTs (start listening) */
     PCMSK0 |= (1 << PCINT0);
@@ -83,7 +83,7 @@ void DEBOUNCE_TIMER_ELAPSE() {
 uint16_t adc_read_blocking(uint8_t adc_mux) {
     ADMUX = adc_mux;         /** Leave REFS as the default: Vcc */
     ADCSRA |= (1 << ADSC);   /** ADC start conversion */
-    while (ADCSRA & (1 << ADSC)) {};   /** Wait for conversion to finish */
+    while (ADCSRA & (1 << ADSC)) {}   /** Wait for conversion to finish */
     return ADC;  /** Return high and low bytes */
 }
 

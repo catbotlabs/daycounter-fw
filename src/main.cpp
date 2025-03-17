@@ -8,8 +8,7 @@
  * This source code is provided under the terms of the MIT License.
  * (See the LICENSE file)
  */
-#include <Arduino.h>
-#include <Wire.h>
+#include <USIWire.h>
 #include <avr/wdt.h>
 #include "globals.h"
 #include "rtc.h"
@@ -34,7 +33,7 @@ DisplayGlyphs glyphs;
  * Print an error message and display whatever is in @ref glyphs
  * on the digital display in an infinite loop.
  */
-void fatal_infinite_display_loop(const __FlashStringHelper* msg) {
+void fatal_infinite_display_loop(const FlashString* msg) {
     swuart_write(F("fatal: "));
     swuart_write(msg);
     while (true) {
@@ -69,6 +68,7 @@ ISR(WATCHDOG_vect) {
 void setup() {
     /** TODO: determine if/whether interrupts (I-bit)
      *  are set in this function. */
+    sei();  // TODO: maybe remove this.
 
     /** Disable watchdog in case of watchdog reset. */
     MCUSR &= ~(1 << WDRF);
@@ -98,7 +98,6 @@ void setup() {
     setup_display();
 
     /** Initialize I2C bus */
-    Wire.setClock(300000);  // enable USI TWI fast mode
     Wire.begin();
 
     /** I2C bus test */
@@ -107,7 +106,11 @@ void setup() {
     // Set watchdog to call WATCHDOG ISR, in case endTransmission locks up.
     wdt_enable(WDTO_15MS);
     WDTCSR |= (1 << WDIE);
+
+    /** If I2C wiring is bad, this will lock up and trigger the watchdog. */
+    /** See ISR(WATCHDOG_vect) */
     bool oled_fail = Wire.endTransmission();
+
     wdt_disable();
     if (oled_fail) {
         glyphs[2] = DIGIT_GLYPHS[5];  // 'S'
@@ -158,8 +161,8 @@ void setup() {
     } else {
         ssd1306_printFixedN(20, 20, "oe_mode 0", STYLE_NORMAL, 1);
     }
-    //    ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
-    //    ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
+    //   ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
+    //   ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
 
     /** TODO: Enable PCINT interrupts? */
 
@@ -168,6 +171,8 @@ void setup() {
 
     /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
     swuart_mode_rx();
+
+    sei();  // Enable interrupts!
 }
 
 void loop() {
@@ -194,4 +199,13 @@ void loop() {
         /** Debounce timer elapsed */
 //        uint8_t button_state = read_button_states();
     }
+}
+
+int main() {
+    // TODO: we don't need to call them setup() and loop().
+    setup();
+    for (;;) {
+        loop();
+    }
+    return 0;
 }

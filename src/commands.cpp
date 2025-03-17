@@ -36,8 +36,8 @@ void cmd_system_test() {
     swuart_write(F("system test begin\r\n"));
 
     /** Test the OLED screen by drawing text on it */
-    ssd1306_clearScreen();
-    ssd1306_printFixedN(0, 1, "OLED screen test", STYLE_NORMAL, 1);
+    // ssd1306_clearScreen();
+    // ssd1306_printFixedN(0, 1, "OLED screen test", STYLE_NORMAL, 1);
 
     /** Test the display by displaying all 8's */
     // DDRA for PA2 is set as output since we are in UART TX mode.

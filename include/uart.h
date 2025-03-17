@@ -12,7 +12,6 @@
 #ifndef INCLUDE_UART_H_
 #define INCLUDE_UART_H_
 
-#include <Arduino.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
@@ -41,7 +40,13 @@ bool swuart_mode_tx();
 
 void swuart_write(char out);
 void swuart_write(const char* out);
-void swuart_write(const __FlashStringHelper* fptr);
+
+class FlashString;
+#define F(string_literal) \
+    (reinterpret_cast<const FlashString*>(PSTR(string_literal)))
+
+void swuart_write(const FlashString* fptr);
+
 
 /**
  * Print a signed 16-bit integer as base 10 text to
