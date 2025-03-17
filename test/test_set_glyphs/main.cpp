@@ -28,7 +28,7 @@
  * doesn't match any of our glyph values.
  */
 void reset_gl(DisplayGlyphs* gl) {
-    *gl[2] = *gl[1] = *gl[0] = 0xaa;
+    (*gl)[2] = (*gl)[1] = (*gl)[0] = 0xaa;
 }
 
 /**
