@@ -371,7 +371,7 @@ void test_tick_datetime_brute_million() {
  * tests leap years.
  * 
  * NOTE that the tick_datetime_one_second function does not follow
- * century leap year rules; instead all century years are treated as
+ * century leap year rules; century years are never treated as
  * leap years.
  * 
  */
@@ -408,7 +408,7 @@ void test_tick_datetime_brute_four_hundred_million() {
     }
 
     // Date should be 3/9/XX09
-    TEST_ASSERT_EQUAL__Date(Date(3, 8, 9), date);
+    TEST_ASSERT_EQUAL__Date(Date(3, 9, 9), date);
     // Time should be 06:08:13
     TEST_ASSERT_EQUAL__Time(Time(6, 8, 13), time);
 }
