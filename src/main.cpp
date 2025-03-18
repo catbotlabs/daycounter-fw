@@ -33,8 +33,8 @@ DisplayGlyphs glyphs;
  * Print an error message and display whatever is in @ref glyphs
  * on the digital display in an infinite loop.
  */
-void fatal_infinite_display_loop(const FlashString* msg) {
-    swuart_write(F("fatal: "));
+void fatal_infinite_display_loop(const ProgmemString* msg) {
+    swuart_write(PS("fatal: "));
     swuart_write(msg);
     while (true) {
         display_glyphs_oe(glyphs);
@@ -62,7 +62,7 @@ ISR(WATCHDOG_vect) {
     glyphs[2] = 0x30;                // 'I'
     glyphs[1] = DIGIT_GLYPHS[2]|1;   // '2'
     glyphs[0] = 0xb8;                // 'C'
-    fatal_infinite_display_loop(F("I2C bus failure! Check OLED wiring."));
+    fatal_infinite_display_loop(PS("I2C bus failure! Check OLED wiring."));
 }
 
 void setup() {
@@ -84,7 +84,7 @@ void setup() {
     if (oe_mode == OEMODE_UART) {
         setup_swuart();
         swuart_mode_tx();
-        swuart_write(F("\r\n== CatBotLabs DayCounter K001 ==\r\n"
+        swuart_write(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
                        "built " __DATE__ __TIME__ "\r\n"));
     } else if (oe_mode == OEMODE_OE) {
         DDRA |= (1 << PA2);   // OE pin: output
@@ -117,7 +117,7 @@ void setup() {
         glyphs[1] = 0xb9;             // 'c'
         glyphs[0] = 0x50;             // 'r'
         fatal_infinite_display_loop(
-            F("failed to communicate with OLED screen"));
+            PS("failed to communicate with OLED screen"));
     }
 
     /** Setup and configure OLED screen. */
@@ -142,14 +142,14 @@ void setup() {
         glyphs[2] = 0x50;  // 'r'
         glyphs[1] = 0x79;  // 't'
         glyphs[0] = 0x58;  // 'c'
-        fatal_infinite_display_loop(F("failed to communicate with RTC"));
+        fatal_infinite_display_loop(PS("failed to communicate with RTC"));
         break;
       case RTCInitResult::UNSET:
-        swuart_write(F("info: RTC registers adjusted\r\n"));
+        swuart_write(PS("info: RTC registers adjusted\r\n"));
         /** Time is unset! */
         break;
       case RTCInitResult::OK:
-        swuart_write(F("info: RTC okay\r\n"));
+        swuart_write(PS("info: RTC okay\r\n"));
     }
 
     /** OLED screen demo */

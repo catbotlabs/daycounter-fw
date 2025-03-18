@@ -23,6 +23,13 @@
  */
 extern volatile char swuart_rx_char;
 
+/** Helper type for strings stored in program space. */
+class ProgmemString;
+
+/** Casts a C-string to a pointer-to-ProgmemString */
+#define PS(string_literal) \
+    (reinterpret_cast<const ProgmemString*>(PSTR(string_literal)))
+
 
 // Sets up the software UART by configuring the Analog Comparator and
 // calling swuart_mode_rx.
@@ -38,14 +45,14 @@ bool swuart_mode_rx();
 // Always returns 1.
 bool swuart_mode_tx();
 
+/** Write a single character over software UART. */
 void swuart_write(char out);
+
+/** Write C-string over software UART. */
 void swuart_write(const char* out);
 
-class FlashString;
-#define F(string_literal) \
-    (reinterpret_cast<const FlashString*>(PSTR(string_literal)))
-
-void swuart_write(const FlashString* fptr);
+/** Write string stored in program space over software UART. */
+void swuart_write(const ProgmemString* pstr);
 
 
 /**

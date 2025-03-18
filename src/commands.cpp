@@ -22,18 +22,18 @@
 
 // 'r'
 void cmd_watchdog_reset() {
-    swuart_write(F("watchdog reset\r\n"));
+    swuart_write(PS("watchdog reset\r\n"));
     wdt_enable(WDTO_15MS);
     while (true) {}
 }
 
 void cmd_say_hello() {
-    swuart_write(F("Hi there!\r\n"));
+    swuart_write(PS("Hi there!\r\n"));
 }
 
 // 't'
 void cmd_system_test() {
-    swuart_write(F("system test begin\r\n"));
+    swuart_write(PS("system test begin\r\n"));
 
     /** Test the OLED screen by drawing text on it */
     // ssd1306_clearScreen();
@@ -46,7 +46,7 @@ void cmd_system_test() {
         display_glyphs_oe(gl);
     }
     PORTA |= (1 << PA2);  // Set UART pin HIGH after being used for OE.
-    swuart_write(F("\r\nsystem test completed\r\n"));
+    swuart_write(PS("\r\nsystem test completed\r\n"));
 }
 
 void cmd_datetime_dev() {
@@ -111,7 +111,7 @@ void cmd_buttons__dev() {
  */
 void handle_uart_char(char ch) {
     swuart_mode_tx();
-    swuart_write(F("\r\n"));
+    swuart_write(PS("\r\n"));
     switch (ch) {
         case 'r':
           cmd_watchdog_reset();
