@@ -13,29 +13,64 @@
 #define INCLUDE_BUTTONS_H_
 
 #include <avr/io.h>
+#include <stdint.h>
 
-/** Button bit positions */
-enum {
-    BTN_SET,
-    BTN_DOWN,
-    BTN_UP,
-    BTN_RIGHT,
-    BTN_LEFT
-};
+/**
+ * Vocabulary:
+ * 
+ *    - Button pin: The bit position that represents the _pin_ a button is on.
+ *         For instance, PA1 for BTSET, or PA0 for UP/DOWN.
+ * 
+ *    - Button bit / "Button": A bit position that represents a button itself.
+ *         For instance, BTN_SET for Set, or BTN_DOWN for Down.
+*/
 
+/**
+ * Button pins:
+ * 
+ * - PA0 on PCINT0: BTVT (UP / DOWN)    - Active high, told apart by ADC.
+ * - PA1 on PCINT1: BTSET               - Active low single button.
+ * - PA3 on PCINT3: BTHZ (RIGHT / LEFT) - Active high, told apart by ADC.
+ */
+
+/** Button pin definitions */
 static const uint8_t BTPIN_BTVT  = PA0;
 static const uint8_t BTPIN_BTSET = PA1;
 static const uint8_t BTPIN_BTHZ  = PA3;
 
-/** Set up everything necessary for the buttons subsystem */
+// By default, BTVT and BTHZ are LOW and BTSET is HIGH.
+static const uint8_t DEFAULT_BTN_PIN_STATES = (1 << BTPIN_BTSET);
+
+/** Mask of all button pins (they're all on Port A) */
+static const uint8_t BTN_PINS_MASK =
+    (1 << BTPIN_BTHZ) | (1 << BTPIN_BTSET) | (1 << BTPIN_BTVT);
+
+/** Mask of the "shared" button pins (that use the ADC to tell them apart). */
+static const uint8_t ADC_BTN_PINS_MASK =
+    (1 << BTPIN_BTVT) | (1 << BTPIN_BTHZ);
+
+/** Physical button bit position definitions */
+enum {
+    BTN_SET,
+    BTN_DOWN,
+    BTN_UP,     // UP must be DOWN + 1
+    BTN_LEFT,
+    BTN_RIGHT,  // RIGHT must be LEFT + 1
+};
+
+/** Set up pins, interrupts, and timers for the buttons subsystem. */
 void setup_buttons();
 
-/** 
- * Read all the button pins to determine which buttons are pressed.
- * Uses the ADC, so it's a little blocking.
- * 
- * @returns The button states as bits, according to the BTN bit positions.
+/** Run after debounce in the main loop to start/stop button repeats */
+void post_debounce_update_repeats();
+
+/** Use after debounce to get which buttons are pressed right now. */
+uint8_t get_pressed_button_flags();
+
+/**
+ * Use the stored pin and the ADC to determine which
+ * is actively causing repeat events.
  */
-uint8_t read_button_states();
+uint8_t get_repeated_button_flag();
 
 #endif  // INCLUDE_BUTTONS_H_

@@ -27,6 +27,7 @@ void cmd_watchdog_reset() {
     while (true) {}
 }
 
+// 'h'
 void cmd_say_hello() {
     swuart_write(PS("Hi there!\r\n"));
 }
@@ -49,61 +50,6 @@ void cmd_system_test() {
     swuart_write(PS("\r\nsystem test completed\r\n"));
 }
 
-void cmd_datetime_dev() {
-    Time t;
-    volatile uint8_t val = 0;
-    // t.field_max_bound(val);
-    /*for (int i = DateTimeField::SECOND+1; i --> 0; ) {
-        swuart_print_int(i);
-        swuart_newline();
-    }*/
-    Date date(val, val, val);
-    Time time(val, val, val);
-    tick_datetime_one_second(&date, &time);
-}
-
-void print_date(const Date& date) {
-    swuart_write("mm ");
-    swuart_print_int(date.month());
-    swuart_write(", dd ");
-    swuart_print_int(date.day());
-    swuart_write(", yy ");
-    swuart_print_int(date.year());
-    swuart_newline();
-}
-
-void print_time(const Time& time) {
-    swuart_write("HH ");
-    swuart_print_int(time.hour());
-    swuart_write(", MM ");
-    swuart_print_int(time.minute());
-    swuart_write(", SS ");
-    swuart_print_int(time.second());
-    swuart_newline();
-}
-
-void cmd_read_rtc_time() {
-    Date date;
-    Time time;
-    rtc_read_datetime(&date, &time);
-    print_date(date);
-    print_time(time);
-}
-
-void cmd_set_rtc__dev() {
-    Date new_date(2, 28, 4);
-    Time new_time(23, 59, 50);
-    rtc_write_datetime(new_date, new_time);
-}
-
-// 'b'
-void cmd_buttons__dev() {
-    uint8_t state = read_button_states();
-    swuart_write("state: ");
-    swuart_print_int(state);
-    swuart_newline();
-}
-
 /**
  * Process a single character received from the software UART interface.
  * 
@@ -122,16 +68,6 @@ void handle_uart_char(char ch) {
         case 't':
           cmd_system_test();
           break;
-        case 'd':
-          cmd_read_rtc_time();
-          break;
-        case 'D':
-          cmd_datetime_dev();
-          break;
-        case 'S':
-          cmd_set_rtc__dev();
-        case 'b':
-          cmd_buttons__dev();
     }
     swuart_mode_rx();
 }

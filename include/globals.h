@@ -25,9 +25,10 @@ extern volatile uint8_t busy_flags;
 
 /** Busy flag bit masks */
 enum {
-    BF_PPS      = 0x01,  /// Pulse-per-second event from RTC
-    BF_UARTRX   = 0x02,  /// Byte received on software UART
-    BF_DEBOUNCE = 0x04,  /// Button debounce timer ended
+    BF_PPS          = 0x01,  /// Pulse-per-second event from RTC
+    BF_UARTRX       = 0x02,  /// Byte received on software UART
+    BF_BTN_DEBOUNCE = 0x04,  /// Button debounce timer ended
+    BF_BTN_REPEAT   = 0x08,  /// Button repeat timer triggered
 };
 
 enum {

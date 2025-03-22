@@ -10,6 +10,7 @@
  */
 
 #include "uart.h"
+#include <stdlib.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <avr/cpufunc.h>
@@ -219,41 +220,18 @@ void swuart_write(const char* out) {
 }
 
 // write until terminating character, strings stored in program space.
-void swuart_write(const ProgmemString* fptr) {
-    PGM_P pgm_ptr = reinterpret_cast<PGM_P>(fptr);
+void swuart_write(const ProgmemString* pstr) {
+    PGM_P pgm_ptr = reinterpret_cast<PGM_P>(pstr);
     while (char out = pgm_read_byte(pgm_ptr++)) {
         tx_byte_sw_uart(out);
     }
 }
 
 
-// assumes dg is between 0 and 9.
-__attribute__((always_inline)) inline void swuart_print_digit(uint8_t dg) {
-    tx_byte_sw_uart('0' + dg);
-}
-
-
 // print a 16-bit signed integer.
 void swuart_print_int(int16_t num) {
-    if (num < 0) {
-        tx_byte_sw_uart('-');
-        num *= -1;
-    }
-    if (num >= 10000) {
-        swuart_print_digit(num / 10000);
-        num %= 10000;
-    }
-    if (num >= 1000) {
-        swuart_print_digit(num / 1000);
-        num %= 1000;
-    }
-    if (num >= 100) {
-        swuart_print_digit(num / 100);
-        num %= 100;
-    }
-    if (num >= 10) {
-        swuart_print_digit(num / 10);
-        num %= 10;
-    }
-    swuart_print_digit(num);
+    // 5 digits, 1 minus sign, 1 terminating char
+    char buf[7];
+    itoa(num, buf, 10);
+    swuart_write(buf);
 }

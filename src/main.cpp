@@ -23,11 +23,12 @@
 bool oe_mode = false;
 volatile uint8_t busy_flags = 0;
 
-Date running_date;
-Time running_time;
+
+static Date running_date;
+static Time running_time;
 
 /** Three-byte buffer for the digital display */
-DisplayGlyphs glyphs;
+static DisplayGlyphs glyphs;
 
 /**
  * Print an error message and display whatever is in @ref glyphs
@@ -68,7 +69,6 @@ ISR(WATCHDOG_vect) {
 void setup() {
     /** TODO: determine if/whether interrupts (I-bit)
      *  are set in this function. */
-    sei();  // TODO: maybe remove this.
 
     /** Disable watchdog in case of watchdog reset. */
     MCUSR &= ~(1 << WDRF);
@@ -91,9 +91,6 @@ void setup() {
         PORTA |= (1 << PA2);  // OE pin: high (disable display)
     }
 
-    /** TODO: Should this enable PCINT interrupts? Probably not. */
-    setup_buttons();
-
     /** Initialize pins that drive the digital display. */
     setup_display();
 
@@ -103,13 +100,14 @@ void setup() {
     /** I2C bus test */
     Wire.beginTransmission(0x3C);  // 0x3C = SSD1306 address
     Wire.write(0xAE);              // DISPLAY OFF (typical startup command)
-    // Set watchdog to call WATCHDOG ISR, in case endTransmission locks up.
-    wdt_enable(WDTO_15MS);
-    WDTCSR |= (1 << WDIE);
+    sei();  // temporarily enable interrupts for this
+    wdt_enable(WDTO_15MS);  // start watchdog ~15ms timer
+    WDTCSR |= (1 << WDIE);  // enable Watchdog ISR to escape lock-up
 
     /** If I2C wiring is bad, this will lock up and trigger the watchdog. */
     /** See ISR(WATCHDOG_vect) */
     bool oled_fail = Wire.endTransmission();
+    cli();
 
     wdt_disable();
     if (oled_fail) {
@@ -120,17 +118,17 @@ void setup() {
             PS("failed to communicate with OLED screen"));
     }
 
+    /** Enable button interrupts after I2C test */
+    setup_buttons();
+
     /** Setup and configure OLED screen. */
     ssd1306_128x32_i2c_init();
     ssd1306_fillScreen(0x00);
 
     /** Setup PPS interrupts */
     PORTB |= (1 << PB2);  // enable pullup resistor (MFP pin is open-drain)
-    // TODO: Check if rising or falling edge is correct in this case.
-    // INT0 interrupts on rising edge
-    MCUCR |= (1 << ISC01) | (1 << ISC00);
-    // enable INT0 interrupts
-    GIMSK |= (1 << INT0);
+    MCUCR |= (1 << ISC01) | (1 << ISC00);  // INT0 interrupts on rising edge
+    GIMSK |= (1 << INT0);   // enable INT0 interrupts
 
     /** Setup RTC */
     switch (setup_rtc()) {
@@ -164,8 +162,6 @@ void setup() {
     //   ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
     //   ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
 
-    /** TODO: Enable PCINT interrupts? */
-
     rtc_read_datetime(&running_date, &running_time);
     set_glyphs(running_time.second(), glyphs);
 
@@ -175,29 +171,44 @@ void setup() {
     sei();  // Enable interrupts!
 }
 
-void loop() {
+inline void loop() {
     /** Focus on drawing to the matrix-encoded digital display */
     do {
         display_glyphs_oe(glyphs);
     } while (busy_flags == 0x00);
 
-    // An interrupt triggered a busy flag:
-    if (busy_flags & BF_PPS) {
+    uint8_t flags = busy_flags;  // copy busy flags
+    busy_flags = 0;              // clear all busy flags
+
+    // Check & process each busy flag:
+    if (flags & BF_PPS) {
         /** Pulse-per-second event received. */
         tick_datetime_one_second(&running_date, &running_time);
 
         /** Show the seconds on the display */
         set_glyphs(running_time.second(), glyphs);
-
-        busy_flags &= ~BF_PPS;
-    } else if (busy_flags & BF_UARTRX) {
+    }
+    if (flags & BF_UARTRX) {
         /** Character received from UART link. */
         handle_uart_char(swuart_rx_char);
         swuart_rx_char = '\0';  // consume character so we can take more.
-        busy_flags &= ~BF_UARTRX;
-    } else if (busy_flags & BF_DEBOUNCE) {
+    }
+    if (flags & BF_BTN_DEBOUNCE) {
         /** Debounce timer elapsed */
-//        uint8_t button_state = read_button_states();
+
+        // Update button repeats
+        post_debounce_update_repeats();
+
+        /** Get which buttons are pressed right now */
+        uint8_t pressed_buttons = get_pressed_button_flags();
+        /** Previous value of pressed_buttons */
+        static uint8_t last_pressed_buttons = 0;
+
+        last_pressed_buttons = pressed_buttons;
+    }
+    if (flags & BF_BTN_REPEAT) {
+        /** Button repeat timer triggered */
+        uint8_t repeated_button = get_repeated_button_flag();
     }
 }
 
