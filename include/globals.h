@@ -12,6 +12,7 @@
 #define INCLUDE_GLOBALS_H_
 
 #include <stdint.h>
+#include "datetime.h"
 
 /**
  * A single volatile byte where specific bits can be
@@ -39,5 +40,8 @@ enum {
 // false: UART/OE pin used for UART
 // true: UART/OE pin used for OE
 extern bool oe_mode;
+
+extern Date running_date;
+extern Time running_time;
 
 #endif  // INCLUDE_GLOBALS_H_

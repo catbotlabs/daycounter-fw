@@ -14,8 +14,8 @@
 #include "globals.h"  /** for busy_flags */
 
 // Timer duration constants:
-/** Time from TCNT0=0 to TCNT0=79 is just over 10 ms */
-const uint8_t DEBOUNCE_TIMER_MATCH = 79;
+/** Time from TCNT0=0 to TCNT0=141 is just over 18 ms */
+const uint8_t DEBOUNCE_TIMER_MATCH = 141;
 
 /** Time from TCNT1=0 to TCNT1=5078 is about 650 ms */
 const uint16_t PRE_REPEAT_TIMER_MATCH = 5078;
@@ -61,14 +61,14 @@ Purpose: Debouncing (A).
 
                  Start
                    |
-TCNT0 count:  0x00 |######## A ###################| 0xFF
-                             |
-                     OCR0A: Debounce delay
-                           (~10ms)
+TCNT0 count:  0x00 |#################### A #########| 0xFF
+                                         |
+                               OCR0A: Debounce delay
+                                      (~18ms)
 
  *
  * Whenever the button pin change PCINT0 interrupt is called,
- * Timer0's clock is started. After ~10ms, OCR0A is reached, which
+ * Timer0's clock is started. After ~18ms, OCR0A is reached, which
  * triggers an interrupt signifying that debouncing is complete and
  * the button pins can be safely read.
  * 
@@ -125,8 +125,11 @@ void setup_buttons() {
     /** Set the pullup resistor on BTSET */
     PORTA |= (1 << PA1);
 
-    /** Enable ADC */
-    ADCSRA |= (1 << ADEN);
+    /** 
+     * Enable ADC and set prescaler to F_CPU/64.
+     * Since F_CPU=8MHz, this gives us and ADC frequency of 125kHz.
+     */
+    ADCSRA |= (1 << ADEN) | (0b110 << ADPS0);
 
     /** Configure Timer0 for debouncing */
     OCR0A = DEBOUNCE_TIMER_MATCH;  // Set the "duration" of the timer
@@ -174,7 +177,7 @@ ISR(PCINT0_vect) {
 }
 
 /**
- * Debounce timer fires 10ms after the last button pin change event.
+ * Debounce timer fires 18ms after the last button pin change event.
  */
 ISR(TIM0_COMPA_vect) {
     TCCR0B = TCCR0B_STOPPED;  // Stop Timer0 clock
@@ -297,7 +300,7 @@ void post_debounce_update_repeats() {
  *   or if channel == BTPIN_BTVT, O means BTN_DOWN and 1 means BTN_UP.
  * @note: this function assumes interrupts are disabled.
  * 
- * @param channel: ADC input channel, MUST be between 0 and 7.
+ * @param channel: ADC input channel, must be between 0 and 7. (not checked)
  */
 bool adc_button_differentiate(uint8_t channel) {
     ADMUX = channel;        // Select ADC channel. (REFS is default: VCC)
@@ -316,8 +319,6 @@ bool adc_button_differentiate(uint8_t channel) {
  * If the bit is 1, the button is pressed.
  * If the bit is 0. the button is not pressed.
  * 
- * @note: This function assumes interrupts are disabled.
- * 
  * @note: If both Right and Left are pressed, only Right will register.
  *       If both Up and Down are pressed, only Up will register.
  * 
@@ -328,21 +329,23 @@ uint8_t get_pressed_button_flags() {
 
     uint8_t pina = PINA;  /** Read the pin states */
 
-    /** Account for BTN_LEFT and BTN_RIGHT */
-    if (pina & (1 << BTPIN_BTHZ)) {
-        /** Left OR Right is pressed, use the ADC to determine which. */
-        /** Note that if both are pressed, Right will dominate. */
-        bool is_right = adc_button_differentiate(BTPIN_BTHZ);
-        pressed_buttons |= (1 << (BTN_LEFT + is_right));
-    }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        /** Account for BTN_LEFT and BTN_RIGHT */
+        if (pina & (1 << BTPIN_BTHZ)) {
+            /** Left OR Right is pressed, use the ADC to determine which. */
+            /** Note that if both are pressed, Right will dominate. */
+            bool is_right = adc_button_differentiate(BTPIN_BTHZ);
+            pressed_buttons |= (1 << (BTN_LEFT + is_right));
+        }
 
-    /** Account for BTN_DOWN and BTN_UP */
-    if (pina & (1 << BTPIN_BTVT)) {
-        /** Down OR Up is pressed, use the ADC to determine which. */
-        /** Note that if both are pressed, Up will dominate. */
-        bool is_up = adc_button_differentiate(BTPIN_BTVT);
-        pressed_buttons |= (1 << (BTN_DOWN + is_up));
-    }
+        /** Account for BTN_DOWN and BTN_UP */
+        if (pina & (1 << BTPIN_BTVT)) {
+            /** Down OR Up is pressed, use the ADC to determine which. */
+            /** Note that if both are pressed, Up will dominate. */
+            bool is_up = adc_button_differentiate(BTPIN_BTVT);
+            pressed_buttons |= (1 << (BTN_DOWN + is_up));
+        }
+    }  // ATOMIC_BLOCK
 
     /** Account for BTN_SET. BTSET is active low. */
     if (!(pina & (1 << BTPIN_BTSET))) {

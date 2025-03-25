@@ -16,7 +16,7 @@
 #include "bcd_tests.h"
 #include "date_tests.h"
 #include "time_tests.h"
-
+#include "str_fmt_tests.h"
 
 /** == Tests with Date and Time together == */
 
@@ -439,6 +439,13 @@ int main() {
     RUN_TEST(test_time_field);
     RUN_TEST(test_time_fields_min_value);
     RUN_TEST(test_time_field_max_value);
+
+    /** String-formatting tests */
+    /** From str_fmt_tests.cpp */
+    RUN_TEST(test_two_digit_itoa);
+    RUN_TEST(test_get_month_name_P);
+    RUN_TEST(test_generate_date_string);
+    RUN_TEST(test_generate_time_string);
 
     /** Tests with Date and Time together */
     /** From this source file. */

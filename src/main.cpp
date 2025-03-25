@@ -20,12 +20,12 @@
 #include "uart.h"
 #include "commands.h"
 
+
+/** globals.h definitions */
+Date running_date;
+Time running_time;
 bool oe_mode = false;
 volatile uint8_t busy_flags = 0;
-
-
-static Date running_date;
-static Time running_time;
 
 /** Three-byte buffer for the digital display */
 static DisplayGlyphs glyphs;
@@ -123,7 +123,8 @@ void setup() {
 
     /** Setup and configure OLED screen. */
     ssd1306_128x32_i2c_init();
-    ssd1306_fillScreen(0x00);
+    ssd1306_clearScreen();
+    ssd1306_setFixedFont(ssd1306xled_font6x8);
 
     /** Setup PPS interrupts */
     PORTB |= (1 << PB2);  // enable pullup resistor (MFP pin is open-drain)
@@ -135,7 +136,6 @@ void setup() {
       case RTCInitResult::FAIL:
         /** Failed to communicate with RTC */
         ssd1306_clearScreen();
-        ssd1306_setFixedFont(digital_font5x7);
         ssd1306_printFixedN(0, 20, "check RTC", STYLE_NORMAL, 1);
         glyphs[2] = 0x50;  // 'r'
         glyphs[1] = 0x79;  // 't'
@@ -149,18 +149,6 @@ void setup() {
       case RTCInitResult::OK:
         swuart_write(PS("info: RTC okay\r\n"));
     }
-
-    /** OLED screen demo */
-    ssd1306_setFixedFont(ssd1306xled_font6x8);
-    ssd1306_printFixedN(30, 0, "Set Date", STYLE_NORMAL, 0);
-    ssd1306_setFixedFont(digital_font5x7);
-    if (oe_mode) {
-        ssd1306_printFixedN(20, 20, "oe_mode 1", STYLE_NORMAL, 1);
-    } else {
-        ssd1306_printFixedN(20, 20, "oe_mode 0", STYLE_NORMAL, 1);
-    }
-    //   ssd1306_printFixedN(20, 20, "Mar11,23", STYLE_NORMAL, 1);
-    //   ssd1306_printFixedN(0, 18, "17:23:06", STYLE_NORMAL, 1);
 
     rtc_read_datetime(&running_date, &running_time);
     set_glyphs(running_time.second(), glyphs);
@@ -187,6 +175,8 @@ inline void loop() {
 
         /** Show the seconds on the display */
         set_glyphs(running_time.second(), glyphs);
+
+        ui_pps();
     }
     if (flags & BF_UARTRX) {
         /** Character received from UART link. */
@@ -204,11 +194,17 @@ inline void loop() {
         /** Previous value of pressed_buttons */
         static uint8_t last_pressed_buttons = 0;
 
+        /** These are the buttons that have been pressed since last debounce */
+        uint8_t ev_pressed = pressed_buttons & ~last_pressed_buttons;
+
+        ui_btn_input(btn_helper(ev_pressed), false);
+
         last_pressed_buttons = pressed_buttons;
     }
     if (flags & BF_BTN_REPEAT) {
         /** Button repeat timer triggered */
         uint8_t repeated_button = get_repeated_button_flag();
+        ui_btn_input((1 << repeated_button), true);
     }
 }
 

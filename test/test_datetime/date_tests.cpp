@@ -90,9 +90,11 @@ void test_date_accessors() {
 }
 
 /**
- * Tests the Date::is_before function.
- * 
- * TODO: describe further.
+ * Tests the Date::is_before function, which checks if a Date is
+ * "before" another Date. Note that if the other Date is over 50 years
+ * out, it is counted as "in the past," because we are not keeping
+ * track of centuries. So if it's over 50 years out, we assume it's in
+ * the next century.
  */
 void test_date_is_before() {
     Date ref;

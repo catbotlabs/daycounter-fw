@@ -58,6 +58,26 @@ enum {
     BTN_RIGHT,  // RIGHT must be LEFT + 1
 };
 
+/**
+ * Helper class that gives easy access to button bits.
+ */
+class btn_helper {
+    uint8_t data;
+
+ public:
+    /** Initialize btn_helper from a byte of the button bits. */
+    explicit btn_helper(uint8_t bits) : data(bits) {}
+
+    bool set()   const {return data & (1 << BTN_SET); }
+    bool down()  const {return data & (1 << BTN_DOWN); }
+    bool up()    const {return data & (1 << BTN_UP); }
+    bool left()  const {return data & (1 << BTN_LEFT); }
+    bool right() const {return data & (1 << BTN_RIGHT); }
+
+    /** Get the underlying byte */
+    uint8_t bits() const {return data; }
+};
+
 /** Set up pins, interrupts, and timers for the buttons subsystem. */
 void setup_buttons();
 

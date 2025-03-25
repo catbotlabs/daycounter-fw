@@ -16,6 +16,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef PIO_UNIT_TESTING
+#include <avr/pgmspace.h>
+#else
+// Unit testing: Quick mock up for pgmspace tools
+#define PROGMEM
+#define memcpy_P memcpy
+#endif  // PIO_UNIT_TESTING
+
 /**
  * Date and Time fields are stored in ascending order:
  *  [second, minute, hour] and [day, month, year]
@@ -85,6 +93,16 @@ enum class TimeCountUnit {
  */
 static const uint8_t DAYS_IN_MONTH[12] =
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+/**
+ * All the three-character month names, "glued" together
+ * and stored in program space.
+ * 
+ * Note that for the "month" field in the Date object,
+ * January is month=1. In this string January is at index 0, etc.A
+ */
+static const char MONTH_NAMES_P[(3 * 12) + 1] PROGMEM =
+    "JanFebMarAprMayJunJulAugSepOctNovDec";
 
 /**
  * Calendar date: Stores day-of-month, month, and year.
@@ -263,5 +281,70 @@ void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
     const Time& time);
 
 uint8_t tick_datetime_one_second(Date* date, Time* time);
+
+
+/** String-formatting tools: */
+
+/**
+ * @brief Convert a two-digit integer into the first two
+ * ASCII characters of a string.
+ * 
+ * @param num: The given integer to be converted to a string.
+ * The integer must be between 0 and 99, inclusive. Bounds
+ * are not checked!
+ * 
+ * @param cstr: Pointer to the character where the tens digit
+ * will be placed. The ones digit will be placed at (cstr + 1).
+ * No terminating character is added, only cstr[0] and cstr[1]
+ * are modified.
+ * 
+ * Behavior example:
+ * 
+ *    num     cstr
+ *  ----------------
+ *     0   |  '00'
+ *     1   |  '01'
+ *     9   |  '09'
+ *     24  |  '24'
+ *     70  |  '70'
+ *     99  |  '99'
+ *    100  |  ':0'  (error: undefined!)
+ *    ...  |  undefined
+ *  ----------------
+ * 
+ */
+inline void two_digit_itoa(char* cstr, uint8_t num) {
+    cstr[0] = '0' + (num / 10);
+    cstr[1] = '0' + (num % 10);
+}
+
+/**
+ * Returns a program-space pointer to a 3-character month name string.
+ * 
+ * @param month: The month field of a Date object. (1 = January, 12 = December).
+ * 
+ * @note The string is not '\0'-terminated. You must read only 3 characters.
+ */
+constexpr const char* get_month_name_P(uint8_t month) {
+    return MONTH_NAMES_P + ((month - 1) * 3);
+}
+
+/**
+ * Writes a string of format "mmm DD 'YY" to the given buffer
+ * using the given Date object.
+ * 
+ * @note Exactly 10 characters are written to the buffer.
+ * A '\0' terminating character is NOT written at the end.
+ */
+void generate_date_string(char* buffer, const Date& date);
+
+/**
+ * Writes a string of format "HH:MM:SS" to the given buffer
+ * using the given Time object.
+ * 
+ * @note Exactly 8 characters are written to the buffer.
+ * A '\0' terminating character is NOT written at the end.
+ */
+void generate_time_string(char* buffer, const Time& time);
 
 #endif  // LIB_DATETIME_DATETIME_H_

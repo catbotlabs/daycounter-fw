@@ -28,7 +28,6 @@ void test_get_least_set_bit() {
     TEST_ASSERT_EQUAL(7, get_least_set_bit(0b10000000));
 }
 
-
 int main() {
     UNITY_BEGIN();
 
