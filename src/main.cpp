@@ -19,11 +19,12 @@
 #include "ui.h"
 #include "uart.h"
 #include "commands.h"
-
+#include "settings.h"
 
 /** globals.h definitions */
 Date running_date;
 Time running_time;
+Settings running_settings;
 bool oe_mode = false;
 volatile uint8_t busy_flags = 0;
 
@@ -85,7 +86,7 @@ void setup() {
         setup_swuart();
         swuart_mode_tx();
         swuart_write(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
-                       "built " __DATE__ __TIME__ "\r\n"));
+                       "built " __DATE__ ", " __TIME__ "\r\n"));
     } else if (oe_mode == OEMODE_OE) {
         DDRA |= (1 << PA2);   // OE pin: output
         PORTA |= (1 << PA2);  // OE pin: high (disable display)
@@ -150,6 +151,12 @@ void setup() {
         swuart_write(PS("info: RTC okay\r\n"));
     }
 
+    if (read_settings_checked(&running_settings)) {
+        swuart_write(PS("info: Settings invalid, reset to defaults.\r\n"));
+    } else {
+        swuart_write(PS("info: Settings okay\r\n"));
+    }
+
     rtc_read_datetime(&running_date, &running_time);
     set_glyphs(running_time.second(), glyphs);
 
@@ -204,7 +211,7 @@ inline void loop() {
     if (flags & BF_BTN_REPEAT) {
         /** Button repeat timer triggered */
         uint8_t repeated_button = get_repeated_button_flag();
-        ui_btn_input((1 << repeated_button), true);
+        ui_btn_input(btn_helper(1 << repeated_button), true);
     }
 }
 

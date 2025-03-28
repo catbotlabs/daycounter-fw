@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include "datetime.h"
+#include "settings.h"
 
 /**
  * A single volatile byte where specific bits can be
@@ -43,5 +44,7 @@ extern bool oe_mode;
 
 extern Date running_date;
 extern Time running_time;
+
+extern Settings running_settings;
 
 #endif  // INCLUDE_GLOBALS_H_

@@ -122,7 +122,12 @@ class Date {
  public:
     Date() = default;
 
-    /** Note that the arguments are NOT in the same order as the fields. */
+    /**
+     * Note that the arguments are NOT in the same order as the stored fields.
+     * 
+     * @note: This constructor makes Date a non-POD type, but the convience
+     * and clarity outweighs the potential performance benefits.
+     */
     Date(uint8_t month, uint8_t day, uint8_t year) :
         fields{day, month, year} {}
 
@@ -207,7 +212,12 @@ struct Time {
  public:
     Time() = default;
 
-    /** Note that the arguments are NOT in the same order as the fields. */
+    /**
+     * Note that the arguments are NOT in the same order as the stored fields.
+     * 
+     * @note: This constructor makes Time a non-POD type, but the convience
+     * and clarity outweighs the potential performance benefits.
+     */
     Time(uint8_t hour, uint8_t minute, uint8_t second) :
         fields{second, minute, hour} {}
 
