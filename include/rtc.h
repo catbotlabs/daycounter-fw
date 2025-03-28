@@ -1,0 +1,44 @@
+/**
+ * @file include/rtc.h
+ * @brief Functions to configure, read from and write to the
+ * MCP7940N battery-backed RTC.
+ * 
+ * Part of the CatBotLabs K001 Day Counter firmware.
+ * 
+ * Copyright (c) 2025, Winston Malinowski
+ * This source code is provided under the terms of the MIT License.
+ * (See the LICENSE file)
+ */
+
+#ifndef INCLUDE_RTC_H_
+#define INCLUDE_RTC_H_
+
+#include <stdint.h>
+#include "datetime.h"
+
+enum class RTCInitResult {
+    OK,     /** RTC registers are set as expected */
+    UNSET,  /** RTC registers had to be set. (RTC was reset, time is unset) */
+    FAIL,   /** Failed to communicate with the RTC. */
+};
+
+/**
+ * @brief Makes sure the RTC's registers are set properly.
+
+ * @returns 0 if all registers are set as expected.
+ *          1 if any registers were adjusted.
+ *          2 if failed to communicate with RTC.
+ */
+RTCInitResult setup_rtc();
+
+/**
+ * Populate a DateTime object with the date and time from the RTC.
+ */
+void rtc_read_datetime(Date* date, Time* time);
+
+/**
+ * Write the information from the given Date and Time objects to the RTC.
+ */
+void rtc_write_datetime(const Date& date, const Time& time);
+
+#endif  // INCLUDE_RTC_H_

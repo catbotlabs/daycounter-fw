@@ -12,6 +12,8 @@
 #define INCLUDE_GLOBALS_H_
 
 #include <stdint.h>
+#include "datetime.h"
+#include "settings.h"
 
 /**
  * A single volatile byte where specific bits can be
@@ -23,9 +25,26 @@
  */
 extern volatile uint8_t busy_flags;
 
+/** Busy flag bit masks */
 enum {
-    BF_PPS    = 0x01,  /// Pulse-per-second event from RTC
-    BF_UARTRX = 0x02,  /// Byte received on software UART
+    BF_PPS          = 0x01,  /// Pulse-per-second event from RTC
+    BF_UARTRX       = 0x02,  /// Byte received on software UART
+    BF_BTN_DEBOUNCE = 0x04,  /// Button debounce timer ended
+    BF_BTN_REPEAT   = 0x08,  /// Button repeat timer triggered
 };
+
+enum {
+    OEMODE_UART,
+    OEMODE_OE
+};
+
+// false: UART/OE pin used for UART
+// true: UART/OE pin used for OE
+extern bool oe_mode;
+
+extern Date running_date;
+extern Time running_time;
+
+extern Settings running_settings;
 
 #endif  // INCLUDE_GLOBALS_H_

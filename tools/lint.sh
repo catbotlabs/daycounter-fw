@@ -1,4 +1,13 @@
 #!/bin/bash
+
+echo "--- TODO list:"
+grep --color=auto -r -n TODO src/ include/ lib/ test/ README.md
+echo "--- end TODO list ---"
+
+echo "--- cpplint issues:"
+
 cpplint --recursive \
-    --filter -build/include_subdir \
-    src/ include/ lib/
+    src/ include/ lib/ test/ 2>&1 |
+    grep -v "^Done"  |   # Exclude "Done processing" lines
+    grep --color=always ".*:[0-9]*:\|$"  # Color the filenames red
+

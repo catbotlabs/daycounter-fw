@@ -10,6 +10,7 @@
  */
 
 #include "uart.h"
+#include <stdlib.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include <avr/cpufunc.h>
@@ -174,13 +175,14 @@ ISR(ANA_COMP_vect) {
 void setup_swuart() {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Analog comparator: Set positive input to bandgap voltage,
-        // trigger interrupts on rising ACO edge.
+        // trigger interrupts on rising AIN1 edge.
         ACSR |= (1 << ACBG) | (1 << ACIS0) | (1 << ACIS1);
         swuart_mode_rx();
     }  // ATOMIC_BLOCK
 }
 
-void swuart_mode_rx() {
+bool swuart_mode_rx() {
+    if (oe_mode != OEMODE_UART) return 0;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Pin as input, pullup disabled
         PORTA &= ~(1 << PA2);
@@ -189,9 +191,11 @@ void swuart_mode_rx() {
         ACSR |= (1 << ACIE);
         ACSR |= (1 << ACI);  // clear interrupt flag
     }
+    return 0;  // Always return 0
 }
 
-void swuart_mode_tx() {
+bool swuart_mode_tx() {
+    if (oe_mode != OEMODE_UART) return 1;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Pin as output, HIGH.
         PORTA |= (1 << PA2);
@@ -200,6 +204,7 @@ void swuart_mode_tx() {
         ACSR &= ~(1 << ACIE);
         ACSR |= (1 << ACI);  // clear interrupt flag
     }
+    return 1;  // Always return 1
 }
 
 // write single character.
@@ -214,10 +219,19 @@ void swuart_write(const char* out) {
     }
 }
 
-// write until terminating character, strings using F().
-void swuart_write(const __FlashStringHelper* fptr) {
-    PGM_P pgm_ptr = reinterpret_cast<PGM_P>(fptr);
+// write until terminating character, strings stored in program space.
+void swuart_write(const ProgmemString* pstr) {
+    PGM_P pgm_ptr = reinterpret_cast<PGM_P>(pstr);
     while (char out = pgm_read_byte(pgm_ptr++)) {
         tx_byte_sw_uart(out);
     }
+}
+
+
+// print a 16-bit signed integer.
+void swuart_print_int(int16_t num) {
+    // 5 digits, 1 minus sign, 1 terminating char
+    char buf[7];
+    itoa(num, buf, 10);
+    swuart_write(buf);
 }

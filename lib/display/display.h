@@ -14,16 +14,8 @@
 
 #include <stdint.h>
 
-struct DisplayGlyphs {
-    /**
-     * dg = {dg2, dg1, dg0}
-     * 
-     * dg2: hundreds place glyph
-     * dg1: tens place glyph
-     * dg0: ones place glyph
-     */
-    uint8_t dg[3];
-};
+/** {dg0, dg1, dg2} */
+using DisplayGlyphs = uint8_t[3];
 
 /**
  * Configure the three pins that drive the display shift register
@@ -41,8 +33,7 @@ void setup_display();
  * Otherwise, the digits are set to their base-10 digit
  * values according to count.
  */
-void set_glyphs(int16_t count, DisplayGlyphs* glyphs);  // TEST this function
-void display_glyphs_oe(const DisplayGlyphs& glyphs);
-void display_glyphs_no_oe(const DisplayGlyphs& glyphs);
+void set_glyphs(int16_t count, DisplayGlyphs glyphs);
+void display_glyphs_oe(const DisplayGlyphs glyphs);
 
 #endif  // LIB_DISPLAY_DISPLAY_H_
