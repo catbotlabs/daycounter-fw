@@ -36,8 +36,8 @@ static DisplayGlyphs glyphs;
  * on the digital display in an infinite loop.
  */
 void fatal_infinite_display_loop(const ProgmemString* msg) {
-    swuart_write(PS("fatal: "));
-    swuart_write(msg);
+    swuart_writeln(PS("fatal:"));
+    swuart_writeln(msg);
     while (true) {
         display_glyphs_oe(glyphs);
     }
@@ -85,8 +85,8 @@ void setup() {
     if (oe_mode == OEMODE_UART) {
         setup_swuart();
         swuart_mode_tx();
-        swuart_write(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
-                       "built " __DATE__ ", " __TIME__ "\r\n"));
+        swuart_writeln(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
+                       "built " __DATE__ ", " __TIME__));
     } else if (oe_mode == OEMODE_OE) {
         DDRA |= (1 << PA2);   // OE pin: output
         PORTA |= (1 << PA2);  // OE pin: high (disable display)
@@ -144,17 +144,17 @@ void setup() {
         fatal_infinite_display_loop(PS("failed to communicate with RTC"));
         break;
       case RTCInitResult::UNSET:
-        swuart_write(PS("info: RTC registers adjusted\r\n"));
+        swuart_writeln(PS("RTC adj"));
         /** Time is unset! */
         break;
       case RTCInitResult::OK:
-        swuart_write(PS("info: RTC okay\r\n"));
+        swuart_writeln(PS("RTC okay"));
     }
 
     if (read_settings_checked(&running_settings)) {
-        swuart_write(PS("info: Settings invalid, reset to defaults.\r\n"));
+        swuart_writeln(PS("Settings invalid: defaults."));
     } else {
-        swuart_write(PS("info: Settings okay\r\n"));
+        swuart_writeln(PS("Settings okay"));
     }
 
     rtc_read_datetime(&running_date, &running_time);

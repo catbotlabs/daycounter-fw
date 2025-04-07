@@ -62,5 +62,4 @@ void ssd1306_platform_i2cInit(int8_t busId, uint8_t addr,
     ssd1306_intf.stop = ssd1306_i2cStop_Wire;
     ssd1306_intf.send = ssd1306_i2cSendByte_Wire;
     ssd1306_intf.send_buffer = ssd1306_i2cSendBytes_Wire;
-    ssd1306_intf.close = ssd1306_i2cClose_Wire;
 }

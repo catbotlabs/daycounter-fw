@@ -38,6 +38,8 @@ enum {
     OEMODE_OE
 };
 
+// TODO: Cut down on globals to reduce program size
+
 // false: UART/OE pin used for UART
 // true: UART/OE pin used for OE
 extern bool oe_mode;

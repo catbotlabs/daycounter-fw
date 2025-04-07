@@ -18,7 +18,7 @@
 const uint8_t DEBOUNCE_TIMER_MATCH = 141;
 
 /** Time from TCNT1=0 to TCNT1=5078 is about 650 ms */
-const uint16_t PRE_REPEAT_TIMER_MATCH = 5078;
+const uint16_t PRE_REPEAT_TIMER_MATCH = 5078;  // TODO: reduce delay
 
 /** Time from TCNT1=0 to TCNT1=1000 is 128 ms */
 const uint16_t REPEAT_BUTTON_TIMER_MATCH = 1000;

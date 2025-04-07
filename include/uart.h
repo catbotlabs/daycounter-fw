@@ -51,8 +51,13 @@ void swuart_write(char out);
 /** Write C-string over software UART. */
 void swuart_write(const char* out);
 
+// TODO: cleanup uart.h, uart.cpp files.
+
 /** Write string stored in program space over software UART. */
-void swuart_write(const ProgmemString* pstr);
+//void swuart_write(const ProgmemString* pstr);
+
+/** Write program-space string and newline over software UART. */
+void swuart_writeln(const ProgmemString* pstr);
 
 
 /**
@@ -64,9 +69,9 @@ void swuart_print_int(int16_t num);
 /**
  * Write CR-LF to software UART.
  */
-__attribute__((always_inline)) inline void swuart_newline() {
-    swuart_write("\r\n");
-}
+//__attribute__((always_inline)) inline void swuart_newline() {
+//    swuart_write("\r\n");
+//}
 
 /**
  * Block wrapper that calls swuart_mode_tx() before the block

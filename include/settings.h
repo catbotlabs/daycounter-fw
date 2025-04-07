@@ -20,17 +20,19 @@
 /**
  * Persistent settings for the DayCounter.
  * 
- * The default values of the member variables are the "factory"
- * default values used if the data is found to be invalid.
+ * The factory default values are set in the `default_settings`
+ * function in settings.cpp.
  * 
  * @note: This struct isn't "packed" because Date isn't a POD-type.
  * Since AVR's are 8-bit, this shouldn't make a difference.
  */
 struct Settings {
-    Date target_date = Date(1, 1, 50);  // 3 bytes
+    Date target_date;                    // 3 bytes
+    TimeCountUnit count_unit;            // 1 byte
+    TimeCountDirection count_direction;  // 1 byte
 };
 
-static_assert(sizeof(Settings) == 3, "Should be 3 bytes");
+static_assert(sizeof(Settings) == 5, "Should be 5 bytes");
 
 /**
  * Stores the Settings object and its CRC in EEPROM.

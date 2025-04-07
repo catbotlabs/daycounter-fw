@@ -38,7 +38,7 @@
  * progress from Day to Month to Year,
  * and Days < Months < Years in duration of time.
  */
-enum class AscendingDateField {
+enum class AscendingDateField : uint8_t {
     DAY,
     MONTH,
     YEAR
@@ -57,7 +57,7 @@ constexpr auto ADF_YEAR = AscendingDateField::YEAR;
  * progress from Second to Minute to Hour,
  * and Seconds < Minutes < Hours in duration of time.
  */
-enum class AscendingTimeField {
+enum class AscendingTimeField : uint8_t {
     SECOND,
     MINUTE,
     HOUR
@@ -69,17 +69,30 @@ constexpr auto ATF_MINUTE = AscendingTimeField::MINUTE;
 constexpr auto ATF_HOUR = AscendingTimeField::HOUR;
 
 /** Return value for count_time_units_until */
-enum class TimeCountReturnValue {
+enum class TimeCountReturnValue : uint8_t {
     OK,          /** Result is usable and resides within expected limits */
     NEGATIVE,    /** Result would be negative */
     OVERFLOW     /** Result would exceed 999  */
 };
 
-/** Whether we are counting in days, weeks, or hours ?? */
-enum class TimeCountUnit {
-    DAY,
-    WEEK,
-    HOUR
+/** Whether we are counting in days, weeks, or hours */
+enum class TimeCountUnit : uint8_t {
+    DAYS,
+    HOURS,
+    WEEKS
+};
+
+/**
+ * Setting that determines if the target date is ahead of
+ * or behind the current RTC time.
+ * 
+ * If AHEAD, then we count the days until the target date.
+ * 
+ * If BEHIND, then we count the days since the target date.
+ */
+enum class TimeCountDirection : uint8_t {
+    AHEAD,
+    BEHIND
 };
 
 /**
@@ -259,7 +272,7 @@ struct Time {
 };
 
 /**
- * A buffer for the six of the MCP7940N time-keeping registers we're
+ * A buffer for the seven MCP7940N time-keeping registers we're
  * using. (RTCWKDAY is ignored except for being buffered for future writes.)
  * 
  * This abstractifies the DateTime code from the hardware enough
@@ -274,6 +287,10 @@ struct __attribute__((packed)) DateTimeRegisters {
     uint8_t rtcmth;
     uint8_t rtcyear;
 };
+
+static_assert(sizeof(DateTimeRegisters) == 7,
+    "DateTimeRegisters must be 7 bytes long!");
+
 
 #ifdef PIO_UNIT_TESTING  // Only expose for unit testing.
 uint8_t int_from_bcd(uint8_t bcd);
@@ -343,8 +360,8 @@ constexpr const char* get_month_name_P(uint8_t month) {
  * Writes a string of format "mmm DD 'YY" to the given buffer
  * using the given Date object.
  * 
- * @note Exactly 10 characters are written to the buffer.
- * A '\0' terminating character is NOT written at the end.
+ * @note Exactly 11 characters are written to the buffer.
+ * A '\0' terminating character is written at the end.
  */
 void generate_date_string(char* buffer, const Date& date);
 
@@ -352,8 +369,8 @@ void generate_date_string(char* buffer, const Date& date);
  * Writes a string of format "HH:MM:SS" to the given buffer
  * using the given Time object.
  * 
- * @note Exactly 8 characters are written to the buffer.
- * A '\0' terminating character is NOT written at the end.
+ * @note Exactly 9 characters are written to the buffer.
+ * A '\0' terminating character is written at the end.
  */
 void generate_time_string(char* buffer, const Time& time);
 

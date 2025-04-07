@@ -220,11 +220,22 @@ void swuart_write(const char* out) {
 }
 
 // write until terminating character, strings stored in program space.
-void swuart_write(const ProgmemString* pstr) {
+/*void swuart_write(const ProgmemString* pstr) {
     PGM_P pgm_ptr = reinterpret_cast<PGM_P>(pstr);
     while (char out = pgm_read_byte(pgm_ptr++)) {
         tx_byte_sw_uart(out);
     }
+}*/
+
+// write until terminating character, strings stored in program space.
+// now with a convienient newline character.
+void swuart_writeln(const ProgmemString* pstr) {
+    PGM_P pgm_ptr = reinterpret_cast<PGM_P>(pstr);
+    while (char out = pgm_read_byte(pgm_ptr++)) {
+        tx_byte_sw_uart(out);
+    }
+    tx_byte_sw_uart('\r');
+    tx_byte_sw_uart('\n');
 }
 
 

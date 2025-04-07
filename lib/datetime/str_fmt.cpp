@@ -16,8 +16,8 @@
  * Writes a string of format "mmm DD 'YY" to the given buffer
  * using the given Date object.
  * 
- * @note Exactly 10 characters are written to the buffer.
- * A '\0' terminating character is NOT written at the end.
+ * @note Exactly 11 characters are written to the buffer.
+ * A '\0' terminating character is written at the end.
  */
 void generate_date_string(char* buffer, const Date& date) {
     const char* month_name_P = get_month_name_P(date.month());
@@ -31,6 +31,7 @@ void generate_date_string(char* buffer, const Date& date) {
     memcpy_P(mmm, month_name_P, 3);   // Copy in month name
     two_digit_itoa(dd, date.day());    // Set day digits
     two_digit_itoa(yy, date.year());   // Set year digits
+    buffer[10] = '\0';            // terminating character
 }
 
 
@@ -38,8 +39,8 @@ void generate_date_string(char* buffer, const Date& date) {
  * Writes a string of format "HH:MM:SS" to the given buffer
  * using the given Time object.
  * 
- * @note Exactly 8 characters are written to the buffer.
- * A '\0' terminating character is NOT written at the end.
+ * @note Exactly 9 characters are written to the buffer.
+ * A '\0' terminating character is written at the end.
  */
 void generate_time_string(char* buffer, const Time& time) {
     char* hh = buffer;
@@ -50,4 +51,5 @@ void generate_time_string(char* buffer, const Time& time) {
     two_digit_itoa(hh, time.hour());
     two_digit_itoa(mm, time.minute());
     two_digit_itoa(ss, time.second());
+    buffer[8] = '\0';              // terminating character
 }
