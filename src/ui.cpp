@@ -89,7 +89,7 @@ void ui_pps() {
             ui_state.mm_page == MainMenuPage::RtcClock) {
         ui_state.dirty = true;
     }
-    
+
     switch (ui_state.layer) {
         case Layer::Blank: {
             break;
@@ -211,7 +211,8 @@ void ui_logic_layer_fieldedit(btn_helper btn, bool is_repeat) {
     // Main Menu page we're on.
     static const uint8_t MAX_FIELD_VALUE_PAGE_MAP[3] = {2, 5, 1};
 
-    uint8_t max_field_value = MAX_FIELD_VALUE_PAGE_MAP[static_cast<uint8_t>(ui_state.mm_page)];
+    uint8_t max_field_value = MAX_FIELD_VALUE_PAGE_MAP[
+        static_cast<uint8_t>(ui_state.mm_page)];
 
     if (btn.left()) {
         if (ui_state.active_field == 0) {
@@ -294,6 +295,7 @@ void ui_draw(UIState* state) {
         }
     }
 
+    /** Reset general-purpose redraw flag */
     state->dirty = false;
 
     last_state = *state;
@@ -332,12 +334,12 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             // "Date: mmm DD 'YY" -> 17 chars w/term
             memcpy_P(ui_strbuf, PSTR("Date: "), 6);
             generate_date_string(ui_strbuf + 6, running_date);
-            ssd1306_printFixedN(0, 16, ui_strbuf, STYLE_NORMAL, 0);  // print Date
+            ssd1306_printFixedN(0, 16, ui_strbuf, STYLE_NORMAL, 0);
 
             // "Time: HH:MM:SS" -> 15 chars w/term
             memcpy_P(ui_strbuf, PSTR("Tim"), 3);
             generate_time_string(ui_strbuf + 6, running_time);
-            ssd1306_printFixedN(0, 24, ui_strbuf, STYLE_NORMAL, 0);  // print Time
+            ssd1306_printFixedN(0, 24, ui_strbuf, STYLE_NORMAL, 0);
             break;
         }
         case MainMenuPage::CountMode: {
@@ -352,7 +354,7 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             break;
         }
     }
-    
+
     if (page_changed) {
         // Clear trailing end delta of header
         int8_t delta_header_width =
@@ -374,13 +376,10 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
     }
 }
 
-/** 9x8 pixel bitmap of an Up arrow, aligned to the top of the canvas */
-//static const uint8_t PROGMEM ARROW_UP[9]   = {0x10, 0x18, 0x1c, 0x1e, 0x1f, 0x1e, 0x1c, 0x18, 0x10};
-
-/** 9x8 pixel bitmap of a Down arrow, aligned to the bottom of the canvas */
-//static const uint8_t PROGMEM ARROW_DOWN[9] = {0x08, 0x18, 0x38, 0x78, 0xf8, 0x78, 0x38, 0x18, 0x08};
-
+/** X-position of the arrows for each field when editing a Date */
 static const uint8_t fe_date_arrow_pos[3] = {15, 57, 105};
+
+/** X-position of the arrows for each field when editing a Time */
 static const uint8_t fe_time_arrow_pos[3] = {9+15, 45+15, 81+15};
 
 /** Whether an arrow image is pointing up or down */
@@ -389,28 +388,36 @@ enum class ArrowDirection : uint8_t {
     Down
 };
 
-// TODO: document
-// y should be aligned by 8
-// y is top location
-// x is bottom location
 /**
- * Procedurally draw an Up or Down arrow (9 x 8) pixels,
- * given its top-left coordinates.
+ * @brief Procedurally draw an arrow given its direction (up/down)
+ * and its top-left coordinates.
+ * 
+ * The arrow is 8 pixels tall and 9 pixels wide.
+ * Using this function instead of drawBitmap reduces the program size,
+ * since drawBitmap isn't used anywhere else.
+ * 
+ * @param direction: Whether this arrow points up or down
+ * @param x: Left-aligned position of the arrow in pixels
+ * @param y: Y-position of the arrow in blocks (8 pixel units).
+ * 
 */
 void draw_arrow(ArrowDirection direction, uint8_t x, uint8_t y) {
-    // range of h: [0, 4]
-    for (int i=0; i<9; i++) {
+    /** Draw the arrow with vertical lines */
+    for (int i = 0; i < 9; i++) {
+        /** Height of the arrow in pixels */
+        // y = 4 - |4 - x|
         uint8_t h = 4 - abs(4 - i);
+        // h ranges between 0 and 4, inclusive.
 
-        uint8_t top_offset;
-        uint8_t bottom_offset;
+        uint8_t top_offset;     // Line top y-coordinate relative to `y`
+        uint8_t bottom_offset;  // Line bottom y-coordinate relative to `y`
 
-        // up: align bottom
-        // down: align top
         if (direction == ArrowDirection::Up) {
+            // Up arrow: the arrow is aligned to the bottom of the block
             top_offset = 4 - h;
             bottom_offset = 4;
         } else {
+            // Down arrow: the arrow is aligned to the top of the block
             top_offset = 2;
             bottom_offset = 2 + h;
         }
@@ -420,6 +427,7 @@ void draw_arrow(ArrowDirection direction, uint8_t x, uint8_t y) {
 }
 
 void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
+    // Clear screen if the "horizontal page" changed
     if (state->time_or_date != last_state.time_or_date) {
         ssd1306_clearScreen();
     }
@@ -439,7 +447,8 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
                     // We're editing the RTC date, so show that.
                     generate_date_string(ui_strbuf, running_date);
                     // TODO: fix visual glitch with ellipses
-                    ssd1306_printFixedN(110, 24, "...", STYLE_NORMAL, 0);  // there's more ahead
+                    /** Draw ellipses to show there's more fields ahead */
+                    ssd1306_printFixedN(110, 24, "...", STYLE_NORMAL, 0);
                 }
                 ssd1306_printFixedN(0, 8, ui_strbuf, STYLE_NORMAL, 1);
             } else {
@@ -449,7 +458,8 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
                 // "HH:MM:SS" -> 9 chars w/term
                 generate_time_string(ui_strbuf, running_time);
                 ssd1306_printFixedN(15, 8, ui_strbuf, STYLE_NORMAL, 1);
-                ssd1306_printFixedN(0, 24, "...", STYLE_NORMAL, 0);  // there's more behind
+                /** Draw ellipses to show there's more fields behind */
+                ssd1306_printFixedN(0, 24, "...", STYLE_NORMAL, 0);
             }
             break;
         }
@@ -458,13 +468,14 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
         }
     }
 
+    /** Redraw arrows if they moved, or if we just entered FieldEdit layer */
     if (state->fe_arrow_left != last_state.fe_arrow_left ||
             state->layer != last_state.layer) {
+        /** Clear arrows at the previous location */
         ssd1306_clearBlock(last_state.fe_arrow_left, 0, 9, 8);
         ssd1306_clearBlock(last_state.fe_arrow_left, 3, 9, 8);
+        /** Draw arrows at the new location */
         draw_arrow(ArrowDirection::Up, state->fe_arrow_left, 0);
         draw_arrow(ArrowDirection::Down, state->fe_arrow_left, 24);
-//        ssd1306_drawBitmap(state->fe_arrow_left, 0, 9, 8, ARROW_UP);
-//        ssd1306_drawBitmap(state->fe_arrow_left, 3, 9, 8, ARROW_DOWN);
     }
 }
