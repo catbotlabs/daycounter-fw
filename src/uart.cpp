@@ -92,7 +92,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /// It's assumed that interrupts are disabled within this context.
-__attribute__((always_inline)) inline uint8_t rx_byte_sw_uart() {
+uint8_t rx_byte_sw_uart() {
     uint8_t rxbyte;
     asm volatile(
         " ldi r18, %[rxdelay2] \n\t" // 1.5 bit delay

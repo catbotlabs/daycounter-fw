@@ -110,18 +110,18 @@ void test_generate_date_string() {
      * String has extra padding on the ends to make sure the function
      * doesn't modify out-of-bounds.
      */
-    const char* initial_str = "~~~mmm~DD~^YY~~~";
-    char str[17];
+    const char* initial_str = "~~~mmm~DD~^YYz~~~";
+    char str[18];
     /** The part in the middle of the string where we'll put the date. */
     char* date_str = str + 3;
 
-    strcpy(str, initial_str);  // reset string
+    strncpy(str, initial_str, 18);  // reset string
     generate_date_string(date_str, Date(1, 1, 0));
-    TEST_ASSERT_EQUAL_STRING("~~~Jan 01 '00~~~", str);
+    TEST_ASSERT_EQUAL_STRING_LEN("~~~Jan 01 '00\0~~~", str, 18);
 
-    strcpy(str, initial_str);
+    strncpy(str, initial_str, 18);
     generate_date_string(date_str, Date(12, 25, 99));
-    TEST_ASSERT_EQUAL_STRING("~~~Dec 25 '99~~~", str);
+    TEST_ASSERT_EQUAL_STRING_LEN("~~~Dec 25 '99\0~~~", str, 18);
 }
 
 /**
@@ -133,21 +133,21 @@ void test_generate_time_string() {
      * String has extra padding on the ends to make sure the function
      * doesn't modify out-of-bounds.
      */
-    const char* initial_str = "~~~HH:MM:SS~~~";
-    char str[17];
+    const char* initial_str = "~~~HH:MM:SSz~~~";
+    char str[16];
     /** The part in the middle of the string where we'll put the date. */
     char* time_str = str + 3;
 
-    strcpy(str, initial_str);  // reset string
+    strncpy(str, initial_str, 16);  // reset string
     generate_time_string(time_str, Time(0, 0, 0));
-    TEST_ASSERT_EQUAL_STRING("~~~00:00:00~~~", str);
+    TEST_ASSERT_EQUAL_STRING_LEN("~~~00:00:00\0~~~", str, 16);
 
-    strcpy(str, initial_str);
+    strncpy(str, initial_str, 16);
     generate_time_string(time_str, Time(22, 22, 22));
-    TEST_ASSERT_EQUAL_STRING("~~~22:22:22~~~", str);
+    TEST_ASSERT_EQUAL_STRING_LEN("~~~22:22:22\0~~~", str, 16);
 
-    strcpy(str, initial_str);
+    strncpy(str, initial_str, 16);
     generate_time_string(time_str, Time(59, 59, 59));
-    TEST_ASSERT_EQUAL_STRING("~~~59:59:59~~~", str);
+    TEST_ASSERT_EQUAL_STRING_LEN("~~~59:59:59\0~~~", str, 16);
 }
 

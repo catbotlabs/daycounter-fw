@@ -68,8 +68,9 @@ constexpr auto ATF_SECOND = AscendingTimeField::SECOND;
 constexpr auto ATF_MINUTE = AscendingTimeField::MINUTE;
 constexpr auto ATF_HOUR = AscendingTimeField::HOUR;
 
+// TODO: Rename TimeCountRangeResult?
 /** Return value for count_time_units_until */
-enum class TimeCountReturnValue : uint8_t {
+enum class TimeCountRangeResult : uint8_t {
     OK,          /** Result is usable and resides within expected limits */
     NEGATIVE,    /** Result would be negative */
     OVERFLOW     /** Result would exceed 999  */
@@ -130,7 +131,7 @@ static const char MONTH_NAMES_P[(3 * 12) + 1] PROGMEM =
  */
 class Date {
     /** Stored in ascending order: {day, month, year} */
-    uint8_t fields[3] = {1, 1, 0};  // Default value: January 1, XX00.
+    uint8_t fields[3]/* = {1, 1, 0}*/;  // Default value: January 1, XX00.
 
  public:
     Date() = default;
@@ -168,9 +169,9 @@ class Date {
     /**
      * Returns true if the "now" date is before the "ref" date.
      */
-    static bool is_before(const Date& now, const Date& ref);
+    bool is_before(const Date& other) const;
 
-    uint16_t count_days_until(const Date& target);
+    uint16_t count_days_until(const Date& target) const;
 
     /**
      * Get a reference to the given date field.
@@ -207,7 +208,7 @@ class Date {
                 }
                 return max;
             }
-            default:  // ADF_YEAR
+            case ADF_YEAR:  // saves flash space to not have "default"
                 return 99;
         }
     }
@@ -220,7 +221,7 @@ class Date {
  */
 struct Time {
     /** Stored in ascending order: {second, minute, hour} */
-    uint8_t fields[3] = {0, 0, 0};  // Default value: 00:00:00
+    uint8_t fields[3]/* = {0, 0, 0}*/;  // Default value: 00:00:00
 
  public:
     Time() = default;
@@ -373,5 +374,14 @@ void generate_date_string(char* buffer, const Date& date);
  * A '\0' terminating character is written at the end.
  */
 void generate_time_string(char* buffer, const Time& time);
+
+/**
+ * TODO: document
+ */
+TimeCountRangeResult count_time_units_until(const Date& target,
+        const Date& now_d, const Time& now_t,
+        TimeCountUnit count_unit, TimeCountDirection direction,
+        uint16_t* count);
+
 
 #endif  // LIB_DATETIME_DATETIME_H_

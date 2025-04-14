@@ -13,6 +13,7 @@
 #define LIB_DISPLAY_DISPLAY_H_
 
 #include <stdint.h>
+#include "glyphdefs.h"
 
 /** {dg0, dg1, dg2} */
 using DisplayGlyphs = uint8_t[3];
@@ -24,16 +25,14 @@ using DisplayGlyphs = uint8_t[3];
 void setup_display();
 
 /**
- * Set the three glyph bytes according to the given number, `count`.
- * `count` represents the number of days until the target date (or
- * hours or weeks, in whatever direction we are counting.)
+ * Set the three glyph bytes using a three-digit number.
  * 
- * If count is negative, then glyphs are set to "  -".
- * If count exceeds 999, then the glyphs are set to "---".
- * Otherwise, the digits are set to their base-10 digit
- * values according to count.
+ * @param count: The given three-digit number. Must be between 0 and 999,
+ * no bounds checking.
  */
 void set_glyphs(int16_t count, DisplayGlyphs glyphs);
+
+
 void display_glyphs_oe(const DisplayGlyphs glyphs);
 
 #endif  // LIB_DISPLAY_DISPLAY_H_

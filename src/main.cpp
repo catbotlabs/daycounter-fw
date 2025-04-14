@@ -21,6 +21,8 @@
 #include "commands.h"
 #include "settings.h"
 
+//TODO: Decide whether our enums are ALLCAPS or Not.
+
 /** globals.h definitions */
 Date running_date;
 Time running_time;
@@ -158,7 +160,7 @@ void setup() {
     }
 
     rtc_read_datetime(&running_date, &running_time);
-    set_glyphs(running_time.second(), glyphs);
+    busy_flags |= BF_RECOUNT;  // We'll need to recount/set glyphs.
 
     /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
     swuart_mode_rx();
@@ -178,10 +180,15 @@ inline void loop() {
     // Check & process each busy flag:
     if (flags & BF_PPS) {
         /** Pulse-per-second event received. */
-        tick_datetime_one_second(&running_date, &running_time);
+        uint8_t result = tick_datetime_one_second(&running_date, &running_time);
+
+        /** Re-count at the top of the hour */
+        if (result >= 2) {
+            busy_flags |= BF_RECOUNT;
+        }
 
         /** Show the seconds on the display */
-        set_glyphs(running_time.second(), glyphs);
+//        set_glyphs(running_time.second(), glyphs);
 
         ui_pps();
     }
@@ -212,6 +219,34 @@ inline void loop() {
         /** Button repeat timer triggered */
         uint8_t repeated_button = get_repeated_button_flag();
         ui_btn_input(btn_helper(1 << repeated_button), true);
+    }
+    if (flags & BF_RECOUNT) {
+        uint16_t count;
+        TimeCountRangeResult result = count_time_units_until(
+            running_settings.target_date,
+            running_date, running_time,
+            running_settings.count_unit, running_settings.count_direction,
+            &count);
+            swuart_mode_tx();
+        switch (result) {
+            case TimeCountRangeResult::OK: {
+                set_glyphs(count, glyphs);
+                swuart_write('K');
+                break;
+            }
+            case TimeCountRangeResult::NEGATIVE: {
+                glyphs[0] = glyphs[2] = 0x00;
+                glyphs[1] = GLYPH_DASH | 1;
+                swuart_write('N');
+                break;
+            }
+            case TimeCountRangeResult::OVERFLOW: {
+                glyphs[0] = glyphs[1] = glyphs[2] = GLYPH_DASH;
+                glyphs[1] |= 1;
+                swuart_write('V');
+            }
+        }
+        swuart_mode_rx();
     }
 }
 

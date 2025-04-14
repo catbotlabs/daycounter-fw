@@ -81,19 +81,19 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
 /**
  * Returns true if the "now" date is before the "ref" date.
  */
-bool Date::is_before(const Date& now, const Date& ref) {
-    if (now.year() == ref.year()) {
+bool Date::is_before(const Date& other) const {
+    if (year() == other.year()) {
         // The year is the same, so compare the month.
-        if (now.month() == ref.month()) {
+        if (month() == other.month()) {
             // The month is the same, so compare the day.
-            return now.day() < ref.day();  // is the day before the ref?
+            return day() < other.day();  // is this day before the other?
         }
-        return now.month() < ref.month();  // is the month before the ref?
+        return month() < other.month();  // is this month before the other?
     }
 
     // Signed delta years:
-    int8_t delta_years = int8_t(ref.year()) - now.year();
-    if (abs(delta_years) > 50) {
+    int8_t delta_years = int8_t(other.year()) - year();
+    if (delta_years > 50 || delta_years < -50) {
         /**
          * If the distance (up or down) between the given year
          * and the ref year exceeds 50 years, then we treat the
@@ -103,11 +103,11 @@ bool Date::is_before(const Date& now, const Date& ref) {
          * the comparison since the years are now approaching ref
          * from the other direction.
          */
-        return now.year() > ref.year();  // Years wrap around century
+        return year() > other.year();  // Years wrap around century
     }
 
     // No wrapping, simple behavior:
-    return now.year() < ref.year();  // is the year before the ref?
+    return year() < other.year();  // is this year before the other?
 }
 
 
@@ -147,7 +147,7 @@ bool Date::is_before(const Date& now, const Date& ref) {
  * kind of like tick_datetime_one_second, to properly increment by one
  * day while wrapping.
  */
-uint16_t Date::count_days_until(const Date& target) {
+uint16_t Date::count_days_until(const Date& target) const {
     // Copy of "this" date, which will be incremented until target is reached.
     Date now = *this;
 
@@ -182,22 +182,105 @@ uint16_t Date::count_days_until(const Date& target) {
     return count + (target.day() - now.day());
 }
 
+// TODO: document
+const uint16_t HOUR_COUNT_MAX_DAY_COUNT = (1000 / 24) + 2;
 
-/**
+/** TODO: document
  * 
  * @param target: The date we are counting towards
  * @param now_d, now_t: Current date and time.
- * @param TimeUnits: Enum of whether we are counting in hours, days, or weeks.
+ * @param count_unit: Whether given count is in hours, days, or weeks.
+ * @param direction: AHEAD if we're counting from `now` to `target`
+ *                or BEHIND if we're counting from `target` to `now`
+ *
  * @param count: Points to where the counted number will be stored.
  * 
- * @returns: 0 on success, count is between 0 and 999.
- *           1 if now is ahead of target (negative count),
- *           2 answer exceeds 999.
+ * @returns: - OK if count was successful.
+ *             The value of `count` is set between 0 and 999.
+ *
+ *           - NEGATIVE if the target and date are backwards verses
+ *             the given `direction`.
+ *             The value of `count` is unchanged.
+ *
+ *           - OVERFLOW if the count is in the right direction, but the
+ *             result would exceed 999.
+ *             The value of `count` is unchanged.
  */
-/*TimeUntilReturnValue count_time_units_until(const Date& target,
+TimeCountRangeResult count_time_units_until(const Date& target,
         const Date& now_d, const Time& now_t,
-        uint8_t TimeUnits, uint16_t* count) {
-}*/
+        TimeCountUnit count_unit, TimeCountDirection direction,
+        uint16_t* count) {
+
+    /** Positive day delta between now and target dates */
+    uint16_t day_count;
+    /** How many hours the given Time adds or subtracts from the day count */
+    int8_t hours_delta = now_t.hour();
+
+    if (direction == TimeCountDirection::AHEAD) {
+        /** We are counting from "now" to "target" */
+
+        if (target.is_before(now_d)) {
+            /** Target is before now! Cannot count backwards. */
+            return TimeCountRangeResult::NEGATIVE;
+        }
+        day_count = now_d.count_days_until(target);
+        hours_delta *= -1;
+    } else {  // BEHIND
+        /** We are counting from "target" to "now" */
+
+        if (now_d.is_before(target)) {
+            /** Now is before target! Cannot count backwards. */
+            return TimeCountRangeResult::NEGATIVE;
+        }
+        day_count = target.count_days_until(now_d);
+    }
+
+    switch (count_unit) {
+        case TimeCountUnit::DAYS: {
+            if (day_count > 999) {
+                return TimeCountRangeResult::OVERFLOW;
+            }
+            *count = day_count;
+            return TimeCountRangeResult::OK;
+        }
+        case TimeCountUnit::WEEKS: {
+            // if day_count==6999, then week count is 999.
+            // if day_count==7000, then week count is 1000.
+            if (day_count > 6999) {
+                return TimeCountRangeResult::OVERFLOW;
+            }
+            *count = day_count / 7;
+            return TimeCountRangeResult::OK;
+        }
+        default: {  // HOURS
+            uint16_t hour_count;
+
+            /** Make sure we do not overflow hour_count. */
+            if (day_count > HOUR_COUNT_MAX_DAY_COUNT) {
+                return TimeCountRangeResult::OVERFLOW;
+            }
+            hour_count = day_count * 24;
+
+            /**
+             * Catch the scenario when counting AHEAD,
+             * where the day_count is 0 and the hours_delta
+             * is negative.
+             */
+            if (hours_delta < 0 && uint8_t(-hours_delta) > hour_count) {
+                    return TimeCountRangeResult::NEGATIVE;
+            }
+
+            // Subtract the hours already past in today's time
+            hour_count += hours_delta;
+
+            if (hour_count > 999) {
+                return TimeCountRangeResult::OVERFLOW;
+            }
+            *count = hour_count;
+            return TimeCountRangeResult::OK;
+        }
+    }
+}
 
 /**
  * Remaining functionality to add:

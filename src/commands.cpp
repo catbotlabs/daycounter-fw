@@ -56,6 +56,7 @@ void cmd_say_hello() {
 
 // 't'
 void cmd_system_test() {
+    #if 0  // todo: cleanup
     swuart_writeln(PS("system test begin"));
 
     /** Test the OLED screen by drawing text on it */
@@ -70,6 +71,7 @@ void cmd_system_test() {
     }
     PORTA |= (1 << PA2);  // Set UART pin HIGH after being used for OE.
     swuart_writeln(PS("\r\nsystem test completed"));
+    #endif
 }
 
 /**

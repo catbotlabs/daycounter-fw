@@ -196,8 +196,8 @@ void test_update_registers_from_datetime() {
  * This function tests each carry and checks the return values.
  */
 void test_tick_datetime_one_second() {
-    Date date;  // Default: January 1, XX00
-    Time time;  // Default: 00:00:00
+    Date date(1, 1, 0);  // Default: January 1, XX00
+    Time time(0, 0, 0);  // Default: 00:00:00
     uint8_t ret = 0;  // Return value of tick_datetime_one_second.
     const char RVM[] = "Return value fail.";  // Return value message
 
@@ -413,6 +413,206 @@ void test_tick_datetime_brute_four_hundred_million() {
     TEST_ASSERT_EQUAL__Time(Time(6, 8, 13), time);
 }
 
+/**
+ * Tests the count_time_units_until function,
+ * which is the general-purpose date/time counting
+ * function.
+ * It can count forwards/backwards, in days/weeks/hours,
+ * and it does bounds checking for if the counting
+ * is backwards / exceeds 999.
+ */
+void test_count_time_units_until() {
+    // TODO: finish testing count_time_units_until.
+    TimeCountRangeResult result;
+    uint16_t count;
+
+    /** Test case: AHEAD/BEHIND OK result, D/H/W */  
+    // Days, AHEAD
+    count = 11;
+    result = count_time_units_until(
+        Date(8, 26, 25),  // target:   Aug 26, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(16, 0, 0),   // now time: 16:00:00
+        TimeCountUnit::DAYS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(144, count);  // 144 day delta
+
+    // Days, BEHIND
+    count = 22;
+    result = count_time_units_until(
+        Date(4, 4, 25),    // target:   Apr 04, '25
+        Date(8, 26, 25),   // now date: Aug 26, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::DAYS,
+        TimeCountDirection::BEHIND,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(144, count);  // 144 day delta
+
+    /** Test case: The Time component, AHEAD/BEHIND, Hours */
+
+    /** Test case: AHEAD/BEHIND OK result, count=0, D/H/W */
+
+    
+
+    /** Test case: AHEAD/BEHIND NEGATIVE result */
+    // AHEAD
+    count = 33;      // reset count
+    result = count_time_units_until(
+        Date(4, 4, 25),    // target:   Apr 04, '25
+        Date(8, 26, 25),   // now date: Aug 26, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::DAYS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::NEGATIVE, result);  // NEGATIVE result
+    TEST_ASSERT_EQUAL(33, count);  // count should be unmodified.
+
+    // BEHIND
+    count = 44;
+    result = count_time_units_until(
+        Date(8, 26, 25),  // target:   Aug 26, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(16, 0, 0),   // now time: 16:00:00
+        TimeCountUnit::DAYS,
+        TimeCountDirection::BEHIND,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::NEGATIVE, result);  // NEGATIVE result
+    TEST_ASSERT_EQUAL(44, count);  // count should be unmodified.
+    
+    /** Test case: OVERFLOW result, D/H/W */
+    {
+    // Days, count = 999: OK
+    count = 55;
+    result = count_time_units_until(
+        Date(12, 29, 27),   // target:   Dec 29, '27
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(16, 0, 0),     // now time: 16:00:00
+        TimeCountUnit::DAYS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(999, count);  // 999 day delta
+
+    // Days, day delta = 1000: OVERFLOW!
+    count = 55;
+    result = count_time_units_until(
+        Date(12, 30, 27),   // target:   Dec 30, '25
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(16, 0, 0),     // now time: 16:00:00
+        TimeCountUnit::DAYS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OVERFLOW, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(55, count);  // count should be unmodified
+
+    // Hours, count = 999: OK
+    count = 66;
+    result = count_time_units_until(
+        Date(5, 16, 25),    // target:   May 16, '25
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(9, 0, 0),     // now time: 09:00:00
+        TimeCountUnit::HOURS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(999, count);  // 999 hour delta
+
+    // Hours, hour delta = 1000: OVERFLOW!
+    count = 66;
+    result = count_time_units_until(
+        Date(5, 16, 25),    // target:   May 16, '25
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(8, 0, 0),     // now time: 08:00:00
+        TimeCountUnit::HOURS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OVERFLOW, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(66, count);  // count should be unmodified.
+
+    // Weeks, count = 999: OK
+    count = 77;
+    result = count_time_units_until(
+        Date(6, 2, 44),    // target:   Jun 02, '44
+        Date(4, 4, 25),    // now date: Apr 04, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::WEEKS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(999, count);  // 999 week delta
+
+    // Weeks, week delta = 1000: OVERFLOW!
+    count = 77;
+    result = count_time_units_until(
+        Date(6, 3, 44),    // target:   Jun 03, '44
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(16, 0, 0),     // now time: 16:00:00
+        TimeCountUnit::WEEKS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OVERFLOW, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(77, count);  // count should be unmodified.
+    }
+
+    /** Test case: 50 year max time delta overflow, D/H/W */
+
+    /** Test case: "hour_count" 16-bit unsigned int overflow protection */
+    // day delta: ceil((2**16)/24) = 2731
+    // A day delta of 2731 days would set
+    // hour_count to 2731*24, which equals 65544, but this
+    // exceeds uint16_t bounds, so hour_count would wrap to around 8.
+    count = 88;
+    result = count_time_units_until(
+        Date(9, 25, 32),   // target:   Sep 25, '32
+        Date(4, 4, 25),    // now date: Apr 04, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::HOURS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OVERFLOW, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(88, count);  // count should be unmodified.
+
+    /** Test case: The situation where day_count==0 and hours_delta<0. */
+    count = 99;
+    result = count_time_units_until(
+        Date(4, 4, 25),   // target:   Apr 04, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(1, 0, 0),    // now time: 01:00:00
+        TimeCountUnit::HOURS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::NEGATIVE, result);  // NEGATIVE result
+    TEST_ASSERT_EQUAL(99, count);  // count should be unmodified.
+
+    // but if hours_delta == 0, then result is OK and count is zero.
+    result = count_time_units_until(
+        Date(4, 4, 25),   // target:   Apr 04, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(0, 59, 59),  // now time: 00:59:59
+        TimeCountUnit::HOURS,
+        TimeCountDirection::AHEAD,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountRangeResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(0, count);  // count is zero hours.
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -424,7 +624,7 @@ int main() {
     /** Date-specific tests */
     /** From date_tests.cpp */
     RUN_TEST(test_is_leap_year);
-    RUN_TEST(test_date_default_value);
+    //RUN_TEST(test_date_default_value);  // TODO: REMOVE?
     RUN_TEST(test_date_accessors);
     RUN_TEST(test_date_is_before);
     RUN_TEST(test_date_field);
@@ -434,7 +634,7 @@ int main() {
 
     /** Time-specific tests */
     /** From time_tests.cpp */
-    RUN_TEST(test_time_default_value);
+    //RUN_TEST(test_time_default_value);  // TODO: REMOVE?
     RUN_TEST(test_time_accessors);
     RUN_TEST(test_time_field);
     RUN_TEST(test_time_fields_min_value);
@@ -456,6 +656,7 @@ int main() {
 #ifdef DC_MAX_TESTING
     RUN_TEST(test_tick_datetime_brute_four_hundred_million);
 #endif
+    RUN_TEST(test_count_time_units_until);
 
     UNITY_END();
     return 0;
