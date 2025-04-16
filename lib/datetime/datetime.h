@@ -39,15 +39,15 @@
  * and Days < Months < Years in duration of time.
  */
 enum class AscendingDateField : uint8_t {
-    DAY,
-    MONTH,
-    YEAR
+    Day,
+    Month,
+    Year
 };
 
 /** Shorter AscendingDateField names for convience. */
-constexpr auto ADF_DAY = AscendingDateField::DAY;
-constexpr auto ADF_MONTH = AscendingDateField::MONTH;
-constexpr auto ADF_YEAR = AscendingDateField::YEAR;
+constexpr auto ADF_DAY = AscendingDateField::Day;
+constexpr auto ADF_MONTH = AscendingDateField::Month;
+constexpr auto ADF_YEAR = AscendingDateField::Year;
 
 /**
  * Provides a standardized way of referencing and
@@ -58,29 +58,28 @@ constexpr auto ADF_YEAR = AscendingDateField::YEAR;
  * and Seconds < Minutes < Hours in duration of time.
  */
 enum class AscendingTimeField : uint8_t {
-    SECOND,
-    MINUTE,
-    HOUR
+    Second,
+    Minute,
+    Hour
 };
 
 /** Shorter AscendingTimeField names for convience. */
-constexpr auto ATF_SECOND = AscendingTimeField::SECOND;
-constexpr auto ATF_MINUTE = AscendingTimeField::MINUTE;
-constexpr auto ATF_HOUR = AscendingTimeField::HOUR;
+constexpr auto ATF_SECOND = AscendingTimeField::Second;
+constexpr auto ATF_MINUTE = AscendingTimeField::Minute;
+constexpr auto ATF_HOUR = AscendingTimeField::Hour;
 
-// TODO: Rename TimeCountRangeResult?
 /** Return value for count_time_units_until */
-enum class TimeCountRangeResult : uint8_t {
+enum class TimeCountResult : uint8_t {
     OK,          /** Result is usable and resides within expected limits */
-    NEGATIVE,    /** Result would be negative */
-    OVERFLOW     /** Result would exceed 999  */
+    Negative,    /** Result would be negative */
+    Overflow     /** Result would exceed 999  */
 };
 
 /** Whether we are counting in days, weeks, or hours */
 enum class TimeCountUnit : uint8_t {
-    DAYS,
-    HOURS,
-    WEEKS
+    Days,
+    Hours,
+    Weeks
 };
 
 /**
@@ -92,8 +91,8 @@ enum class TimeCountUnit : uint8_t {
  * If BEHIND, then we count the days since the target date.
  */
 enum class TimeCountDirection : uint8_t {
-    AHEAD,
-    BEHIND
+    Ahead,
+    Behind
 };
 
 /**
@@ -184,7 +183,7 @@ class Date {
      * Returns the minimum allowable value for the given field.
      */
     uint8_t field_min_value(AscendingDateField field) const {
-        if (field == AscendingDateField::YEAR) {
+        if (field == AscendingDateField::Year) {
             return 0;  // Years number starts at zero.
         }
         return 1;      // Month number and Day-Of-Month number start at 1.
@@ -378,7 +377,7 @@ void generate_time_string(char* buffer, const Time& time);
 /**
  * TODO: document
  */
-TimeCountRangeResult count_time_units_until(const Date& target,
+TimeCountResult count_time_units_until(const Date& target,
         const Date& now_d, const Time& now_t,
         TimeCountUnit count_unit, TimeCountDirection direction,
         uint16_t* count);

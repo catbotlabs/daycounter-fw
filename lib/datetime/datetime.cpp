@@ -206,7 +206,7 @@ const uint16_t HOUR_COUNT_MAX_DAY_COUNT = (1000 / 24) + 2;
  *             result would exceed 999.
  *             The value of `count` is unchanged.
  */
-TimeCountRangeResult count_time_units_until(const Date& target,
+TimeCountResult count_time_units_until(const Date& target,
         const Date& now_d, const Time& now_t,
         TimeCountUnit count_unit, TimeCountDirection direction,
         uint16_t* count) {
@@ -216,12 +216,12 @@ TimeCountRangeResult count_time_units_until(const Date& target,
     /** How many hours the given Time adds or subtracts from the day count */
     int8_t hours_delta = now_t.hour();
 
-    if (direction == TimeCountDirection::AHEAD) {
+    if (direction == TimeCountDirection::Ahead) {
         /** We are counting from "now" to "target" */
 
         if (target.is_before(now_d)) {
             /** Target is before now! Cannot count backwards. */
-            return TimeCountRangeResult::NEGATIVE;
+            return TimeCountResult::Negative;
         }
         day_count = now_d.count_days_until(target);
         hours_delta *= -1;
@@ -230,34 +230,34 @@ TimeCountRangeResult count_time_units_until(const Date& target,
 
         if (now_d.is_before(target)) {
             /** Now is before target! Cannot count backwards. */
-            return TimeCountRangeResult::NEGATIVE;
+            return TimeCountResult::Negative;
         }
         day_count = target.count_days_until(now_d);
     }
 
     switch (count_unit) {
-        case TimeCountUnit::DAYS: {
+        case TimeCountUnit::Days: {
             if (day_count > 999) {
-                return TimeCountRangeResult::OVERFLOW;
+                return TimeCountResult::Overflow;
             }
             *count = day_count;
-            return TimeCountRangeResult::OK;
+            return TimeCountResult::OK;
         }
-        case TimeCountUnit::WEEKS: {
+        case TimeCountUnit::Weeks: {
             // if day_count==6999, then week count is 999.
             // if day_count==7000, then week count is 1000.
             if (day_count > 6999) {
-                return TimeCountRangeResult::OVERFLOW;
+                return TimeCountResult::Overflow;
             }
             *count = day_count / 7;
-            return TimeCountRangeResult::OK;
+            return TimeCountResult::OK;
         }
-        default: {  // HOURS
+        default: {  // Hours
             uint16_t hour_count;
 
             /** Make sure we do not overflow hour_count. */
             if (day_count > HOUR_COUNT_MAX_DAY_COUNT) {
-                return TimeCountRangeResult::OVERFLOW;
+                return TimeCountResult::Overflow;
             }
             hour_count = day_count * 24;
 
@@ -267,17 +267,17 @@ TimeCountRangeResult count_time_units_until(const Date& target,
              * is negative.
              */
             if (hours_delta < 0 && uint8_t(-hours_delta) > hour_count) {
-                    return TimeCountRangeResult::NEGATIVE;
+                    return TimeCountResult::Negative;
             }
 
             // Subtract the hours already past in today's time
             hour_count += hours_delta;
 
             if (hour_count > 999) {
-                return TimeCountRangeResult::OVERFLOW;
+                return TimeCountResult::Overflow;
             }
             *count = hour_count;
-            return TimeCountRangeResult::OK;
+            return TimeCountResult::OK;
         }
     }
 }

@@ -10,8 +10,8 @@
  * (See the LICENSE file)
  */
 
-#ifndef INCLUDE_ARDUINO_H_
-#define INCLUDE_ARDUINO_H_
+#ifndef INCLUDE_GLOBAL_ARDUINO_H_
+#define INCLUDE_GLOBAL_ARDUINO_H_
 
 #define DDR_USI DDRA
 #define PIN_USI PINA
@@ -22,4 +22,4 @@
 #define PIN_USI_CL PIN_USI
 #define PORT_USI_CL PORT_USI
 
-#endif  // INCLUDE_ARDUINO_H_
+#endif  // INCLUDE_GLOBAL_ARDUINO_H_

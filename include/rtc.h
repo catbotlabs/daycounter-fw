@@ -18,8 +18,8 @@
 
 enum class RTCInitResult : uint8_t {
     OK,     /** RTC registers are set as expected */
-    UNSET,  /** RTC registers had to be set. (RTC was reset, time is unset) */
-    FAIL,   /** Failed to communicate with the RTC. */
+    Unset,  /** RTC registers had to be set. (RTC was reset, time is unset) */
+    Fail,   /** Failed to communicate with the RTC. */
 };
 
 /**

@@ -40,9 +40,6 @@ static void ssd1306_i2cSendBytes_Wire(const uint8_t *buffer, uint16_t size) {
     }
 }
 
-static void ssd1306_i2cClose_Wire() {
-}
-
 void ssd1306_platform_i2cInit(int8_t busId, uint8_t addr,
         ssd1306_platform_i2cConfig_t * cfg) {
     // Not using busId nor addr.

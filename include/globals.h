@@ -31,16 +31,13 @@ enum {
     BF_UARTRX       = 0x02,  /// Byte received on software UART
     BF_BTN_DEBOUNCE = 0x04,  /// Button debounce timer ended
     BF_BTN_REPEAT   = 0x08,  /// Button repeat timer triggered
-    // TODO: Rename BF_RECOUNT?
-    BF_RECOUNT      = 0x10,  /// Set display glyphs by the calculated count.
+    BF_RECOUNT      = 0x10,  /// Recount time unit delta; set display glyphs
 };
 
 enum {
     OEMODE_UART,
     OEMODE_OE
 };
-
-// TODO: Cut down on globals to reduce program size
 
 // false: UART/OE pin used for UART
 // true: UART/OE pin used for OE

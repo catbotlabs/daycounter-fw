@@ -21,8 +21,6 @@
 #include "commands.h"
 #include "settings.h"
 
-//TODO: Decide whether our enums are ALLCAPS or Not.
-
 /** globals.h definitions */
 Date running_date;
 Time running_time;
@@ -100,20 +98,20 @@ void setup() {
     /** Initialize I2C bus */
     TinyI2C.init();
 
-    /** I2C bus test */
-    TinyI2C.start(0x3C, 0);  // 0x3C = SSD1306 address
-    TinyI2C.write(0xAE);     // DISPLAY OFF (typical startup command)
+
     sei();  // temporarily enable interrupts for this
     wdt_enable(WDTO_15MS);  // start watchdog ~15ms timer
     WDTCSR |= (1 << WDIE);  // enable Watchdog ISR to escape lock-up
 
     /** If I2C wiring is bad, this will lock up and trigger the watchdog. */
     /** See ISR(WATCHDOG_vect) */
-    TinyI2C.stop(); // TODO: RE-WORK Watchdog catch for TinyI2C library! ^^^
-    bool oled_fail = false;
-    cli();
+    bool oled_fail = !TinyI2C.start(0x3C, 0);  // 0x3C = SSD1306 address
+    TinyI2C.write(0xAE);  // DISPLAY OFF (typical startup command)
+    TinyI2C.stop();
 
+    cli();
     wdt_disable();
+
     if (oled_fail) {
         glyphs[2] = DIGIT_GLYPHS[5];  // 'S'
         glyphs[1] = 0xb9;             // 'c'
@@ -137,7 +135,7 @@ void setup() {
 
     /** Setup RTC */
     switch (setup_rtc()) {
-      case RTCInitResult::FAIL:
+      case RTCInitResult::Fail:
         /** Failed to communicate with RTC */
         ssd1306_clearScreen();
         ssd1306_printFixedN(0, 20, "check RTC", STYLE_NORMAL, 1);
@@ -146,7 +144,7 @@ void setup() {
         glyphs[0] = 0x58;  // 'c'
         fatal_infinite_display_loop(PS("failed to communicate with RTC"));
         break;
-      case RTCInitResult::UNSET:
+      case RTCInitResult::Unset:
         swuart_writeln(PS("RTC adj"));
         /** Time is unset! */
         break;
@@ -188,9 +186,6 @@ inline void loop() {
             busy_flags |= BF_RECOUNT;
         }
 
-        /** Show the seconds on the display */
-//        set_glyphs(running_time.second(), glyphs);
-
         ui_pps();
     }
     if (flags & BF_UARTRX) {
@@ -223,25 +218,25 @@ inline void loop() {
     }
     if (flags & BF_RECOUNT) {
         uint16_t count;
-        TimeCountRangeResult result = count_time_units_until(
+        TimeCountResult result = count_time_units_until(
             running_settings.target_date,
             running_date, running_time,
             running_settings.count_unit, running_settings.count_direction,
             &count);
             swuart_mode_tx();
         switch (result) {
-            case TimeCountRangeResult::OK: {
+            case TimeCountResult::OK: {
                 set_glyphs(count, glyphs);
                 swuart_write('K');
                 break;
             }
-            case TimeCountRangeResult::NEGATIVE: {
+            case TimeCountResult::Negative: {
                 glyphs[0] = glyphs[2] = 0x00;
                 glyphs[1] = GLYPH_DASH | 1;
                 swuart_write('N');
                 break;
             }
-            case TimeCountRangeResult::OVERFLOW: {
+            case TimeCountResult::Overflow: {
                 glyphs[0] = glyphs[1] = glyphs[2] = GLYPH_DASH;
                 glyphs[1] |= 1;
                 swuart_write('V');

@@ -106,31 +106,31 @@ RTCInitResult setup_rtc() {
 
     /** RTCSEC: Make sure ST is set. */
     if (rtc_read_byte(RTCSEC, &reg)) {
-        return RTCInitResult::FAIL;
+        return RTCInitResult::Fail;
     }
     if (!(reg & (1 << ST))) {
         rtc_write_byte(RTCSEC, reg | (1 << ST));
-        result = RTCInitResult::UNSET;
+        result = RTCInitResult::Unset;
     }
 
     /** CONTROL: Make sure SQWEN is set. */
     // SQWEN is the only bit we want set in CONTROL
     const uint8_t wanted_control_reg = (1 << SQWEN);
     if (rtc_read_byte(CONTROL, &reg)) {
-        return RTCInitResult::FAIL;
+        return RTCInitResult::Fail;
     }
     if (reg != wanted_control_reg) {
         rtc_write_byte(CONTROL, wanted_control_reg);
-        result = RTCInitResult::UNSET;
+        result = RTCInitResult::Unset;
     }
 
     /** RTCWKDAY: Make sure VBATEN is set. */
     if (rtc_read_byte(RTCWKDAY, &reg)) {
-        return RTCInitResult::FAIL;
+        return RTCInitResult::Fail;
     }
     if (!(reg & (1 << VBATEN))) {
         rtc_write_byte(RTCWKDAY, reg | (1 << VBATEN));
-        result = RTCInitResult::UNSET;
+        result = RTCInitResult::Unset;
     }
 
     /** Return whether any of the registers were modified. */
@@ -159,8 +159,6 @@ bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
     return 0;
 }
 
-
-// TODO: Remove the return value??
 /**
  * Write the buffered registers in the given DateTimeRegisters
  * object to the RTC's memory.

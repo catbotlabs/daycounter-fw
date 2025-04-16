@@ -69,8 +69,8 @@ uint16_t write_settings(const Settings& settings) {
 /** Set a Settings object to the factory default values. */
 inline void default_settings(Settings* settings) {
     settings->target_date = Date(1, 1, 50);
-    settings->count_unit = TimeCountUnit::DAYS;
-    settings->count_direction = TimeCountDirection::AHEAD;
+    settings->count_unit = TimeCountUnit::Days;
+    settings->count_direction = TimeCountDirection::Ahead;
 }
 
 /**
