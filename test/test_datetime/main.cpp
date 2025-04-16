@@ -426,7 +426,7 @@ void test_count_time_units_until() {
     TimeCountResult result;
     uint16_t count;
 
-    /** Test case: AHEAD/BEHIND OK result, D/H/W */  
+    /** Test case: AHEAD/BEHIND OK result, D/H/W */
     // Days, AHEAD
     count = 11;
     result = count_time_units_until(
@@ -457,7 +457,7 @@ void test_count_time_units_until() {
 
     /** Test case: AHEAD/BEHIND OK result, count=0, D/H/W */
 
-    
+
 
     /** Test case: AHEAD/BEHIND NEGATIVE result */
     // AHEAD
@@ -486,7 +486,7 @@ void test_count_time_units_until() {
 
     TEST_ASSERT_EQUAL(TimeCountResult::Negative, result);  // NEGATIVE result
     TEST_ASSERT_EQUAL(44, count);  // count should be unmodified.
-    
+
     /** Test case: OVERFLOW result, D/H/W */
     {
     // Days, count = 999: OK
@@ -624,7 +624,6 @@ int main() {
     /** Date-specific tests */
     /** From date_tests.cpp */
     RUN_TEST(test_is_leap_year);
-    //RUN_TEST(test_date_default_value);  // TODO: REMOVE?
     RUN_TEST(test_date_accessors);
     RUN_TEST(test_date_is_before);
     RUN_TEST(test_date_field);
@@ -634,7 +633,6 @@ int main() {
 
     /** Time-specific tests */
     /** From time_tests.cpp */
-    //RUN_TEST(test_time_default_value);  // TODO: REMOVE?
     RUN_TEST(test_time_accessors);
     RUN_TEST(test_time_field);
     RUN_TEST(test_time_fields_min_value);

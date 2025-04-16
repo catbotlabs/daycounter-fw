@@ -14,7 +14,6 @@
 
 /** Date-specific tests */
 void test_is_leap_year();
-void test_date_default_value();
 void test_date_accessors();
 void test_date_is_before();
 void test_date_field();

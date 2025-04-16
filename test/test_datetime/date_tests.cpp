@@ -48,14 +48,6 @@ void test_is_leap_year() {
 }
 
 /**
- * Tests the default value of the Date object.
- */
-void test_date_default_value() {
-    Date date;  // Default value should be January 1, XX00.
-    TEST_ASSERT_EQUAL__Date(Date(1, 1, 0), date);
-}
-
-/**
  * Tests the const and non-const Date field accessors,
  * which are the Date::day, Date::month, and Date::year functions.
  */

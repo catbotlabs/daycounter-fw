@@ -112,13 +112,15 @@ static const uint8_t DAYS_IN_MONTH[12] =
  * and stored in program space.
  * 
  * Note that for the "month" field in the Date object,
- * January is month=1. In this string January is at index 0, etc.A
+ * January is month=1. In this string January is at index 0, etc.
  */
 static const char MONTH_NAMES_P[(3 * 12) + 1] PROGMEM =
     "JanFebMarAprMayJunJulAugSepOctNovDec";
 
 /**
  * Calendar date: Stores day-of-month, month, and year.
+ * 
+ * Default value is unset!
  * 
  * The Day and Month are stored the way they are typically
  * interpreted: Month 1 is January, Month 3 is March.
@@ -130,7 +132,7 @@ static const char MONTH_NAMES_P[(3 * 12) + 1] PROGMEM =
  */
 class Date {
     /** Stored in ascending order: {day, month, year} */
-    uint8_t fields[3]/* = {1, 1, 0}*/;  // Default value: January 1, XX00.
+    uint8_t fields[3];
 
  public:
     Date() = default;
@@ -195,6 +197,9 @@ class Date {
      * 
      * For instance, the value of the Month field affects the
      * maximum allowable value of the Day field.
+     * 
+     * @note If field isn't Month, Day, or Year, then
+     * behavior is undefined.
      */
     uint8_t field_max_value(AscendingDateField field) const {
         switch (field) {
@@ -210,17 +215,20 @@ class Date {
             case ADF_YEAR:  // saves flash space to not have "default"
                 return 99;
         }
+        // ~~ Undefined behavior (saves 64 bytes of program space) ~~
     }
 };
 
 /**
  * Time-of-day: Stores seconds, minutes, and hours.
  * 
+ * Default value is unset!
+ * 
  * Time is stored as 24-hour time (Hours go up to 23, no AM/PM).
  */
 struct Time {
     /** Stored in ascending order: {second, minute, hour} */
-    uint8_t fields[3]/* = {0, 0, 0}*/;  // Default value: 00:00:00
+    uint8_t fields[3];
 
  public:
     Time() = default;

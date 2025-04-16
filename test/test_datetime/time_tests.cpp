@@ -18,14 +18,6 @@
 /** == Time-specific tests == */
 
 /**
- * Tests the default value of the Time object.
- */
-void test_time_default_value() {
-    Time time;  // Default value should be 00:00:00
-    TEST_ASSERT_EQUAL__Time(Time(0, 0, 0), time);
-}
-
-/**
  * Tests the const and non-const Time field accessors,
  * which are the Time::second, Time::minute, and Time::hour functions.
  */

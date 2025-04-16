@@ -209,8 +209,7 @@ const uint16_t HOUR_COUNT_MAX_DAY_COUNT = (1000 / 24) + 2;
 TimeCountResult count_time_units_until(const Date& target,
         const Date& now_d, const Time& now_t,
         TimeCountUnit count_unit, TimeCountDirection direction,
-        uint16_t* count) {
-
+        uint16_t* count) { 
     /** Positive day delta between now and target dates */
     uint16_t day_count;
     /** How many hours the given Time adds or subtracts from the day count */
