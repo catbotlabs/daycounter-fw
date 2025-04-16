@@ -11,7 +11,7 @@
 
 #include "intf/ssd1306_interface.h"
 #include "intf/i2c/ssd1306_i2c.h"  /** for SSD1306_SA */
-#include <USIWire.h>
+#include <TinyI2CMaster.h>
 
 /**
  * This code is based on ssd1306/src/ssd1306_hal/arduino/platform.cpp
@@ -21,32 +21,21 @@
  * the terms of the MIT License.
  */
 
-static uint8_t s_bytesWritten = 0;
-
-
 static void ssd1306_i2cStart_Wire() {
-    Wire.beginTransmission(SSD1306_SA);
-    s_bytesWritten = 0;
+    TinyI2C.start(SSD1306_SA, 0);
 }
 
 static void ssd1306_i2cStop_Wire() {
-    Wire.endTransmission();
+    TinyI2C.stop();
 }
 
 static void ssd1306_i2cSendByte_Wire(uint8_t data) {
-    if (s_bytesWritten >= (WIRE_BUFFER_LENGTH - 2)) {
-        // Prevent buffer overflow
-        ssd1306_i2cStop_Wire();
-        ssd1306_i2cStart_Wire();
-        ssd1306_i2cSendByte_Wire(0x40);
-    }
-    Wire.write(data);
-    s_bytesWritten++;
+    TinyI2C.write(data);
 }
 
 static void ssd1306_i2cSendBytes_Wire(const uint8_t *buffer, uint16_t size) {
     while (size--) {
-        ssd1306_i2cSendByte_Wire(*buffer);
+        TinyI2C.write(*buffer);
         buffer++;
     }
 }

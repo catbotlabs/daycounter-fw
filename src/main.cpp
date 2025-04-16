@@ -8,8 +8,8 @@
  * This source code is provided under the terms of the MIT License.
  * (See the LICENSE file)
  */
-#include <USIWire.h>
 #include <avr/wdt.h>
+#include <TinyI2CMaster.h>
 #include "globals.h"
 #include "rtc.h"
 #include "datetime.h"
@@ -98,18 +98,19 @@ void setup() {
     setup_display();
 
     /** Initialize I2C bus */
-    Wire.begin();
+    TinyI2C.init();
 
     /** I2C bus test */
-    Wire.beginTransmission(0x3C);  // 0x3C = SSD1306 address
-    Wire.write(0xAE);              // DISPLAY OFF (typical startup command)
+    TinyI2C.start(0x3C, 0);  // 0x3C = SSD1306 address
+    TinyI2C.write(0xAE);     // DISPLAY OFF (typical startup command)
     sei();  // temporarily enable interrupts for this
     wdt_enable(WDTO_15MS);  // start watchdog ~15ms timer
     WDTCSR |= (1 << WDIE);  // enable Watchdog ISR to escape lock-up
 
     /** If I2C wiring is bad, this will lock up and trigger the watchdog. */
     /** See ISR(WATCHDOG_vect) */
-    bool oled_fail = Wire.endTransmission();
+    TinyI2C.stop(); // TODO: RE-WORK Watchdog catch for TinyI2C library! ^^^
+    bool oled_fail = false;
     cli();
 
     wdt_disable();

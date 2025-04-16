@@ -11,7 +11,7 @@
 
 #include "rtc.h"
 #include <util/delay.h>   // for _delay_us()
-#include <USIWire.h>
+#include <TinyI2CMaster.h>
 #include <uart.h>
 #include "datetime.h"
 
@@ -46,13 +46,13 @@ const uint8_t SQWEN = 6;
  * Returns 0 on success, 1 on failure.
  */
 bool rtc_read_byte(uint8_t addr, uint8_t* data) {
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(addr);
-    if (Wire.endTransmission()) {
+    TinyI2C.start(RTC_ADDR, 0);
+    TinyI2C.write(addr);
+    if (!TinyI2C.restart(RTC_ADDR, 1)) {
         return 1;
     }
-    Wire.requestFrom(RTC_ADDR, (uint8_t)1);
-    *data = Wire.read();
+    *data = TinyI2C.read();
+    TinyI2C.stop();
     return 0;
 }
 
@@ -61,10 +61,13 @@ bool rtc_read_byte(uint8_t addr, uint8_t* data) {
  * Returns 0 on success, 1 on failure.
  */
 bool rtc_write_byte(uint8_t addr, uint8_t data) {
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(addr);
-    Wire.write(data);
-    return Wire.endTransmission();
+    TinyI2C.start(RTC_ADDR, 0);
+    TinyI2C.write(addr);
+    if (!TinyI2C.write(data)) {
+        return false;
+    }
+    TinyI2C.stop();
+    return true;
 }
 
 
@@ -142,22 +145,22 @@ RTCInitResult setup_rtc() {
  */
 bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
     /** Request to read 7 bytes starting at 0x00. */
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(0x00);  // start address to read from
-    if (Wire.endTransmission()) {
+    TinyI2C.start(RTC_ADDR, 0);
+    TinyI2C.write(0x00);  // start address to read from
+    if (!TinyI2C.restart(RTC_ADDR, 7)) {  // request to read 7 bytes
         return 1;
     }
 
-    // Request to read 7 bytes
-    Wire.requestFrom(RTC_ADDR, (uint8_t)7);
-
     // Put those bytes in the DateTimeRegisters object
     for (int i = 0; i < 7; i++) {
-        *(reinterpret_cast<uint8_t*>(rg) + i) = Wire.read();
+        *(reinterpret_cast<uint8_t*>(rg) + i) = TinyI2C.read();
     }
+    TinyI2C.stop();
     return 0;
 }
 
+
+// TODO: Remove the return value??
 /**
  * Write the buffered registers in the given DateTimeRegisters
  * object to the RTC's memory.
@@ -165,12 +168,17 @@ bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
  * @returns 0 on success, 1 on failure.
  */
 bool rtc_write_timekeeping_registers(const DateTimeRegisters& rg) {
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(0x00);  // 0x00 is the starting address we're writing to.
+    if (!TinyI2C.start(RTC_ADDR, 0)) {
+        return false;
+    }
+    TinyI2C.write(0x00);  // 0x00 is the starting address we're writing to.
 
     /** Send the register bytes to the RTC */
-    Wire.write(reinterpret_cast<const uint8_t*>(&rg), 7);
-    return Wire.endTransmission();
+    for (int i = 0; i < 7; i ++) {
+        TinyI2C.write(reinterpret_cast<const uint8_t*>(&rg)[i]);
+    }
+    TinyI2C.stop();
+    return true;
 }
 
 /**

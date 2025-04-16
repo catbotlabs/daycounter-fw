@@ -1,5 +1,5 @@
 /**
- * @file src/buttons.h
+ * @file include/buttons.h
  * @brief Button reading / debouncing
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
