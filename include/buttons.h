@@ -81,8 +81,11 @@ class btn_helper {
 /** Set up pins, interrupts, and timers for the buttons subsystem. */
 void setup_buttons();
 
-/** Run after debounce in the main loop to start/stop button repeats */
-void post_debounce_update_repeats();
+/**
+ * Run after debounce in the main loop to start/stop button repeats
+ * @returns true if the pre-repeat timer has just been started.
+ */
+bool post_debounce_update_repeats();
 
 /** Use after debounce to get which buttons are pressed right now. */
 uint8_t get_pressed_button_flags();

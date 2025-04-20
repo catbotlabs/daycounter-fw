@@ -31,6 +31,9 @@ volatile uint8_t busy_flags = 0;
 /** Three-byte buffer for the digital display */
 static DisplayGlyphs glyphs;
 
+/** Number of repeat presses since button held */
+static uint8_t num_repeats;
+
 /**
  * Print an error message and display whatever is in @ref glyphs
  * on the digital display in an infinite loop.
@@ -117,7 +120,7 @@ void setup() {
         glyphs[1] = 0xb9;             // 'c'
         glyphs[0] = 0x50;             // 'r'
         fatal_infinite_display_loop(
-            PS("failed to communicate with OLED screen"));
+            PS("OLED comm fail"));
     }
 
     /** Enable button interrupts after I2C test */
@@ -142,25 +145,24 @@ void setup() {
         glyphs[2] = 0x50;  // 'r'
         glyphs[1] = 0x79;  // 't'
         glyphs[0] = 0x58;  // 'c'
-        fatal_infinite_display_loop(PS("failed to communicate with RTC"));
+        fatal_infinite_display_loop(PS("RTC comm fail"));  // failed to communicate with RTC
         break;
       case RTCInitResult::Unset:
-        swuart_writeln(PS("RTC adj"));
+        swuart_writeln(PS("RTC unset"));  // RTC registers weren't set properly
         /** Time is unset! */
         break;
       case RTCInitResult::OK:
-        swuart_writeln(PS("RTC okay"));
+        break;  // RTC okay. No action necessary.
     }
 
     if (read_settings_checked(&running_settings)) {
-        swuart_writeln(PS("Settings invalid: defaults."));
-    } else {
-        swuart_writeln(PS("Settings okay"));
+        swuart_writeln(PS("settings reset"));
     }
 
     rtc_read_datetime(&running_date, &running_time);
     busy_flags |= BF_RECOUNT;  // We'll need to recount/set glyphs.
 
+    swuart_writeln(PS("ready."));
     /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
     swuart_mode_rx();
 
@@ -197,7 +199,10 @@ inline void loop() {
         /** Debounce timer elapsed */
 
         // Update button repeats
-        post_debounce_update_repeats();
+        if (post_debounce_update_repeats()) {
+            // Pre-repeat just began, so reset our repeat counter.
+            num_repeats = 0;
+        }
 
         /** Get which buttons are pressed right now */
         uint8_t pressed_buttons = get_pressed_button_flags();
@@ -207,14 +212,15 @@ inline void loop() {
         /** These are the buttons that have been pressed since last debounce */
         uint8_t ev_pressed = pressed_buttons & ~last_pressed_buttons;
 
-        ui_btn_input(btn_helper(ev_pressed), false);
+        ui_btn_input(btn_helper(ev_pressed), 0);
 
         last_pressed_buttons = pressed_buttons;
     }
     if (flags & BF_BTN_REPEAT) {
         /** Button repeat timer triggered */
+        num_repeats++;
         uint8_t repeated_button = get_repeated_button_flag();
-        ui_btn_input(btn_helper(1 << repeated_button), true);
+        ui_btn_input(btn_helper(1 << repeated_button), num_repeats);
     }
     if (flags & BF_RECOUNT) {
         uint16_t count;

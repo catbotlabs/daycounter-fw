@@ -21,6 +21,20 @@
  */
 const uint8_t MAINMENU_TIMEOUT_S = 6;
 
+/** Switch to "fast repeat" mode on the given Nth repeat. */
+const uint8_t FAST_REPEAT_BUILDUP = 5;
+
+/** When in "fast repeat" mode, make this the minimum increment */
+const uint8_t FAST_REPEAT_INCREMENTS = 5;
+
+// Labels for the CountUnit field
+// It is 3 substrings that are 5 chars long each.
+static const char CountUnitLabels[] PROGMEM = "Days\0HoursWeeks";
+
+// Labels for the CountDirection field
+// It is 2 substrings that are 6 chars long each.
+static const char CountDirectionLabels[] PROGMEM = "Ahead\0Behind";
+
 enum class Layer : uint8_t {
     Blank,
     MainMenu,
@@ -33,9 +47,9 @@ enum class MainMenuPage : uint8_t {
     CountMode
 };
 
-enum class TimeOrDate : uint8_t {
-    Time,
-    Date
+enum class LeftOrRight : uint8_t {
+    Left,
+    Right
 };
 
 struct UIState {
@@ -43,10 +57,10 @@ struct UIState {
     MainMenuPage mm_page = MainMenuPage::TargetDate;
 
     /**
-     * Whether we are editing the Date or the Time of the
-     * current RTC time.
+     * Whether we are editing the left or right horizontal
+     * page in field edit mode (for RtcClock and CountMode)
      */
-    TimeOrDate time_or_date = TimeOrDate::Time;
+    LeftOrRight hz_page = LeftOrRight::Left;
 
     /** Currently selected field (index from the left of the screen) */
     uint8_t active_field = 0;
@@ -117,14 +131,14 @@ void ui_transition_mainmenu_to_fieldedit();
 void ui_transition_fieldedit_to_mainmenu();
 
 /** Process UI logic in the MainMenu or FieldEdit layers. */
-void ui_logic_layer_mainmenu(btn_helper btn, bool is_repeat);
-void ui_logic_layer_fieldedit(btn_helper btn, bool is_repeat);
+void ui_logic_layer_mainmenu(btn_helper btn, uint8_t repeats);
+void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats);
 
 /** Save edited fields to the RTC or EEPROM */
 void ui_fieldedit_save();
 
 
-void ui_btn_input(btn_helper btn, bool is_repeat) {
+void ui_btn_input(btn_helper btn, uint8_t repeats) {
     if (btn.bits() == 0) {
         return;
     }
@@ -135,11 +149,11 @@ void ui_btn_input(btn_helper btn, bool is_repeat) {
             break;
         }
         case Layer::MainMenu: {
-            ui_logic_layer_mainmenu(btn, is_repeat);
+            ui_logic_layer_mainmenu(btn, repeats);
             break;
         }
         case Layer::FieldEdit: {
-            ui_logic_layer_fieldedit(btn, is_repeat);
+            ui_logic_layer_fieldedit(btn, repeats);
             break;
         }
     }
@@ -159,7 +173,7 @@ void ui_transition_mainmenu_to_blank() {
 
 void ui_transition_mainmenu_to_fieldedit() {
     ui_state.layer = Layer::FieldEdit;
-    ui_state.time_or_date = TimeOrDate::Date;
+    ui_state.hz_page = LeftOrRight::Left;
     ui_state.active_field = 0;
 }
 
@@ -168,7 +182,7 @@ void ui_transition_fieldedit_to_mainmenu() {
     ui_state.mm_timeout = MAINMENU_TIMEOUT_S;  // Set inactivity timer
 }
 
-void ui_logic_layer_mainmenu(btn_helper btn, bool is_repeat) {
+void ui_logic_layer_mainmenu(btn_helper btn, uint8_t repeats) {
     // Reset inactivity timer
     ui_state.mm_timeout = MAINMENU_TIMEOUT_S;
     if (btn.left()) {
@@ -180,7 +194,7 @@ void ui_logic_layer_mainmenu(btn_helper btn, bool is_repeat) {
     // Scroll up or down between the pages
     if (btn.down()) {
         if (ui_state.mm_page == MainMenuPage::CountMode) {
-            if (!is_repeat) {
+            if (!repeats) {
                 // Allow wrapping if it's not a repeat press
                 ui_state.mm_page = MainMenuPage::TargetDate;
             }
@@ -191,7 +205,7 @@ void ui_logic_layer_mainmenu(btn_helper btn, bool is_repeat) {
     } else if (btn.up()) {
         // Allow wrapping if it's not a repeat press
         if (ui_state.mm_page == MainMenuPage::TargetDate) {
-            if (!is_repeat) {
+            if (!repeats) {
                 ui_state.mm_page = MainMenuPage::CountMode;
             }
         } else {
@@ -206,7 +220,7 @@ void ui_logic_layer_mainmenu(btn_helper btn, bool is_repeat) {
     }
 }
 
-void ui_logic_layer_fieldedit(btn_helper btn, bool is_repeat) {
+void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
     // The maximum value of the active_field mapped by which
     // Main Menu page we're on.
     static const uint8_t MAX_FIELD_VALUE_PAGE_MAP[3] = {2, 5, 1};
@@ -216,7 +230,7 @@ void ui_logic_layer_fieldedit(btn_helper btn, bool is_repeat) {
 
     if (btn.left()) {
         if (ui_state.active_field == 0) {
-            if (!is_repeat) {
+            if (!repeats) {
                 // Allow wrapping if it's not a repeat press
                 ui_state.active_field = max_field_value;
             }
@@ -226,7 +240,7 @@ void ui_logic_layer_fieldedit(btn_helper btn, bool is_repeat) {
         }
     } else if (btn.right()) {
         if (ui_state.active_field == max_field_value) {
-            if (!is_repeat) {
+            if (!repeats) {
                 // Allow wrapping if it's not a repeat press
                 ui_state.active_field = 0;
             }
@@ -236,10 +250,149 @@ void ui_logic_layer_fieldedit(btn_helper btn, bool is_repeat) {
         }
     }
 
-    if (ui_state.active_field > 2) {
-        ui_state.time_or_date = TimeOrDate::Time;
+    /** Important: hz_page has implications for drawing AND logic  */
+    if (ui_state.mm_page == MainMenuPage::CountMode) {
+        ui_state.hz_page = static_cast<LeftOrRight>(ui_state.active_field);
     } else {
-        ui_state.time_or_date = TimeOrDate::Date;
+        ui_state.hz_page = static_cast<LeftOrRight>(ui_state.active_field > 2);
+    }
+
+    if (btn.down() || btn.up()) {
+        uint8_t* field;
+        uint8_t f_min;
+        uint8_t f_max;
+        Date* active_date = nullptr;
+
+        /**
+         * Get pointer to the field we're editing (field),
+         * and get its minimum/maximum bounds.
+         */
+        switch (ui_state.mm_page) {
+            case MainMenuPage::TargetDate: {
+                // Editing a Date: target_date
+                active_date = &running_settings.target_date;
+                break;
+            }
+            case MainMenuPage::RtcClock: {
+                if (ui_state.hz_page == LeftOrRight::Left) {  // Date
+                    // Editing a Date: running_date
+                    active_date = &running_date;
+                } else {  // Time
+                    StdTimeField stf = static_cast<StdTimeField>
+                                       (ui_state.active_field - 3);
+                    AscendingTimeField atf = to_ascending(stf);
+                    field = &running_time.field(atf);
+                    f_min = running_time.fields_min_value();
+                    f_max = running_time.field_max_value(atf);
+                }
+                break;
+            }
+            case MainMenuPage::CountMode: {
+                if (ui_state.active_field == 0) {
+                    field = reinterpret_cast<uint8_t*>(&running_settings.count_unit);
+                } else {
+                    field = reinterpret_cast<uint8_t*>(&running_settings.count_direction);
+                }
+                f_min = 0;
+                f_max = 1;
+                break;
+            }
+        }
+
+        /** Are we are editing the Month field of a Date object? */
+        bool editing_months = false;
+
+        if (active_date) {
+            /** A Date is being edited, so use the Date field accessors. */
+            StdDateField sdf = static_cast<StdDateField>
+                (ui_state.active_field);
+            if (sdf == StdDateField::Month) {
+                editing_months = true;
+            }
+            AscendingDateField adf = to_ascending(sdf);
+            field = &(active_date->field(adf));
+            f_min = active_date->field_min_value(adf);
+            f_max = active_date->field_max_value(adf);
+        }
+
+        uint8_t prev_field_val = *field;
+
+        /** Signed value of the field as we're editing it */
+        int8_t s_field_val = *field;
+
+        /**
+         * True if we should increment/decrement quickly because
+         * the user has been holding the button for enough repeats.
+         */
+        bool fast_repeats = (repeats >= FAST_REPEAT_BUILDUP) && !editing_months;
+
+        // TODO: FIX field_val going negative and wrapping!
+
+        if (!fast_repeats) {
+            /** Increment / decrement the field */
+            if (btn.up()) {
+                s_field_val++;
+            } else {
+                s_field_val--;
+            }
+        } else {
+            /** Fast repeat mode! */
+            if (btn.up()) {
+                /** Jump to the next increment */
+                uint8_t current_increment = s_field_val / FAST_REPEAT_INCREMENTS;
+                s_field_val = (current_increment + 1) * FAST_REPEAT_INCREMENTS;
+            } else {
+                /** Jump to the previous increment */
+
+                // This will round down any parital-increment amount
+                uint8_t increment = s_field_val / FAST_REPEAT_INCREMENTS;
+                if ((s_field_val % FAST_REPEAT_INCREMENTS) == 0) {
+                    // There is no more partial increment amount, so
+                    // go down by one whole increment.
+                    increment--;
+                }
+                s_field_val = increment * FAST_REPEAT_INCREMENTS;
+            }
+        }
+
+        /** Bounds checking */
+        // If this is not a repeat press,
+        //    then wrap to the other min/max bound.
+        // If this is a repeat press,
+        //    then clamp to the bound that was exceeded.
+        if (s_field_val < f_min) {
+            if (repeats) {
+                s_field_val = f_min;  // Repeats: clamp
+            } else {
+                s_field_val = f_max;  // Real press: wrap
+            }
+        }
+        if (s_field_val > f_max) {
+            if (repeats) {
+                s_field_val = f_max;  // Repeats: clamp
+            } else {
+                s_field_val = f_min;  // Real press: wrap
+            }
+        }
+
+        /** Apply the clamped, edited field value */
+        *field = s_field_val;
+
+        // If editing a Date, then always clamp Day Of Month to its max bound,
+        // because Day Of Month bounds change Month-to-month or
+        // year-to-year (because of leap year).
+        if (active_date) {
+            uint8_t& day = active_date->day();
+            uint8_t max_day = active_date->field_max_value(ADF_DAY);
+            if (day > max_day) {
+                day = max_day;
+            }
+        }
+
+        // Redraw if the active field has changed.
+        if (*field != prev_field_val) {
+            ui_state.dirty = true;
+        }
     }
 
     // Press SET to confirm the field's value
@@ -349,8 +502,17 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             // Draw the header
             ssd1306_printFixedN(0, 0, "* SET COUNT MODE", STYLE_BOLD, 0);
 
-            ssd1306_printFixedN(0, 16, "Unit: Days", STYLE_NORMAL, 0);
-            ssd1306_printFixedN(0, 24, "Target: Ahead", STYLE_NORMAL, 0);
+            memcpy_P(ui_strbuf, PSTR("Unit: "), 6);
+            uint8_t field_val = static_cast<uint8_t>(running_settings.count_unit);
+            memcpy_P(ui_strbuf + 6, CountUnitLabels + (field_val * 5), 5);
+            ui_strbuf[11] = '\0';
+            ssd1306_printFixedN(0, 16, ui_strbuf, STYLE_NORMAL, 0);
+
+            memcpy_P(ui_strbuf, PSTR("Target: "), 8);
+            field_val = static_cast<uint8_t>(running_settings.count_direction);
+            memcpy_P(ui_strbuf + 8, CountDirectionLabels + (field_val * 6), 6);
+            ui_strbuf[14] = '\0';
+            ssd1306_printFixedN(0, 24, ui_strbuf, STYLE_NORMAL, 0);
             break;
         }
     }
@@ -387,6 +549,8 @@ enum class ArrowDirection : uint8_t {
     Up,
     Down
 };
+
+
 
 /**
  * @brief Procedurally draw an arrow given its direction (up/down)
@@ -428,14 +592,17 @@ void draw_arrow(ArrowDirection direction, uint8_t x, uint8_t y) {
 
 void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
     // Clear screen if the "horizontal page" changed
-    if (state->time_or_date != last_state.time_or_date) {
+    if (state->hz_page != last_state.hz_page) {
         ssd1306_clearScreen();
     }
+
+    // The x position of the left of the big main text.
+    uint8_t main_text_x = 0;
 
     switch (state->mm_page) {
         case MainMenuPage::TargetDate:
         case MainMenuPage::RtcClock: {
-            if (state->time_or_date == TimeOrDate::Date) {
+            if (state->hz_page == LeftOrRight::Left) {  // Left page: Date
                 // date
                 state->fe_arrow_left = fe_date_arrow_pos[state->active_field];
 
@@ -446,26 +613,53 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
                 } else {
                     // We're editing the RTC date, so show that.
                     generate_date_string(ui_strbuf, running_date);
-                    // TODO: fix visual glitch with ellipses
-                    /** Draw ellipses to show there's more fields ahead */
-                    ssd1306_printFixedN(110, 24, "...", STYLE_NORMAL, 0);
                 }
-                ssd1306_printFixedN(0, 8, ui_strbuf, STYLE_NORMAL, 1);
-            } else {
+            } else {  // Right page: Time
                 // time
                 state->fe_arrow_left = fe_time_arrow_pos[state->active_field - 3];
 
                 // "HH:MM:SS" -> 9 chars w/term
                 generate_time_string(ui_strbuf, running_time);
-                ssd1306_printFixedN(15, 8, ui_strbuf, STYLE_NORMAL, 1);
-                /** Draw ellipses to show there's more fields behind */
-                ssd1306_printFixedN(0, 24, "...", STYLE_NORMAL, 0);
+                main_text_x = 15;
             }
             break;
         }
         case MainMenuPage::CountMode: {
+
+
+
+            if (state->hz_page == LeftOrRight::Left) {  // Left page: Count Unit
+                uint8_t field_val = static_cast<uint8_t>
+                                    (running_settings.count_unit);
+                memcpy_P(ui_strbuf, CountUnitLabels + (field_val * 5), 5);
+                main_text_x = 40;
+                state->fe_arrow_left = 46;
+                ui_strbuf[5] = '\0';  // terminating character
+                ssd1306_printFixedN(0, 0, "Units", STYLE_NORMAL, 0);
+            } else {  // Right page: Count Direction
+                uint8_t field_val = static_cast<uint8_t>
+                                    (running_settings.count_direction);
+                memcpy_P(ui_strbuf, CountDirectionLabels + (field_val * 6), 6);
+                main_text_x = 24;
+                state->fe_arrow_left = 30;
+                ui_strbuf[6] = '\0';  // terminating character
+                ssd1306_printFixedN(0, 0, "Direction", STYLE_NORMAL, 0);
+            }
             break;
         }
+    }
+
+    // Draw the big main text
+    ssd1306_printFixedN(main_text_x, 8, ui_strbuf, STYLE_NORMAL, 1);
+
+                    // TODO: fix visual glitch with ellipses
+    /** Draw ellipses to show there's more fields to the left/right */
+    if (state->mm_page != MainMenuPage::TargetDate) {   // If ellipses_x != 255
+        uint8_t ellipses_x = 0;
+        if (state->hz_page == LeftOrRight::Left) {
+            ellipses_x = 110;
+        }
+        ssd1306_printFixedN(ellipses_x, 24, "...", STYLE_NORMAL, 0);
     }
 
     /** Redraw arrows if they moved, or if we just entered FieldEdit layer */

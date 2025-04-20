@@ -37,10 +37,17 @@
  * These names are in "ascending" order, since they
  * progress from Day to Month to Year,
  * and Days < Months < Years in duration of time.
- */
+ */  // TODO: rename AscendingDateField -> AscDateField
 enum class AscendingDateField : uint8_t {
     Day,
     Month,
+    Year
+};
+
+// TODO: document StdDateField
+enum class StdDateField : uint8_t {
+    Month,
+    Day,
     Year
 };
 
@@ -56,11 +63,18 @@ constexpr auto ADF_YEAR = AscendingDateField::Year;
  * These names are in "ascending" order, since they
  * progress from Second to Minute to Hour,
  * and Seconds < Minutes < Hours in duration of time.
- */
+ */  // TODO: rename AscendingTimeField -> AscTimeField
 enum class AscendingTimeField : uint8_t {
     Second,
     Minute,
     Hour
+};
+
+// TODO: document StdTimeField
+enum class StdTimeField : uint8_t {
+    Hour,
+    Minute,
+    Second
 };
 
 /** Shorter AscendingTimeField names for convience. */
@@ -317,6 +331,31 @@ void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
 
 uint8_t tick_datetime_one_second(Date* date, Time* time);
 
+
+// TODO: test to_ascending__date
+// TODO: Optimize?
+inline AscendingDateField to_ascending(StdDateField field) {
+    switch (field) {
+        case StdDateField::Month:
+            return AscendingDateField::Month;
+        case StdDateField::Day:
+            return AscendingDateField::Day;
+        case StdDateField::Year:
+            return AscendingDateField::Year;
+    }
+}
+
+// TODO: test to_ascending__time
+inline AscendingTimeField to_ascending(StdTimeField field) {
+    switch (field) {
+        case StdTimeField::Hour:
+            return AscendingTimeField::Hour;
+        case StdTimeField::Minute:
+            return AscendingTimeField::Minute;
+        case StdTimeField::Second:
+            return AscendingTimeField::Second;
+    }
+}
 
 /** String-formatting tools: */
 

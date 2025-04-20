@@ -51,7 +51,6 @@ const uint16_t BUTTON_ADC_THRESHOLD = 950;
  */
 static uint8_t repeat_pin;
 
-
 /**
     Explanation of how the Timers are being used:
 
@@ -266,8 +265,11 @@ ISR(TIM1_COMPB_vect) {
  * Technically this could simply be part of ISR(TIM0_COMPA_vect)
  * (the debounce timer interrupt), but methinks its slightly too
  * heavy. Thus it gets run in the main loop.
+ * 
+ * Returns true if the pre-repeat timer has just been started.
  */
-void post_debounce_update_repeats() {
+bool post_debounce_update_repeats() {
+    bool repeats_begun = false;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         /** Button pins where the buttons are actively pressed */
         uint8_t active_btn_pins = (PINA & BTN_PINS_MASK) ^ (1 << BTPIN_BTSET);
@@ -278,10 +280,12 @@ void post_debounce_update_repeats() {
         uint8_t ev_pressed_btn_pins = active_btn_pins & ~last_active_btn_pins;
 
         if (active_btn_pins ^ last_active_btn_pins) {
+            // Button states changed: Reset repeats.
             // Disable the repeat timer, whether in pre-repeat or repeating.
             stop_repeat_timer();
         }
         if (ev_pressed_btn_pins & ADC_BTN_PINS_MASK) {
+            repeats_begun = true;
             if (ev_pressed_btn_pins & (1 << BTPIN_BTHZ)) {
                 repeat_pin = BTPIN_BTHZ;
             } else {
@@ -292,6 +296,7 @@ void post_debounce_update_repeats() {
 
         last_active_btn_pins = active_btn_pins;
     };  // ATOMIC_BLOCK
+    return repeats_begun;
 }
 
 /**
