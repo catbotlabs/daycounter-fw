@@ -18,6 +18,41 @@
 #include "time_tests.h"
 #include "str_fmt_tests.h"
 
+/** == General-purpose function tests == */
+
+/**
+ * Test the to_ascending_df function, which
+ * remaps a StdDateField enum to a AscDateField enum.
+ */
+void test_to_ascending_df() {
+    /** to_ascending_df simply remaps these three enums: */
+    TEST_ASSERT_EQUAL(AscDateField::Day,
+                      to_ascending_df(StdDateField::Day));
+
+    TEST_ASSERT_EQUAL(AscDateField::Month,
+                      to_ascending_df(StdDateField::Month));
+
+    TEST_ASSERT_EQUAL(AscDateField::Year,
+                      to_ascending_df(StdDateField::Year));
+}
+
+/**
+ * Test the to_ascending_tf function, which
+ * remaps a StdTimeField enum to a AscTimeField enum.
+ */
+void test_to_ascending_tf() {
+    /** to_ascending_tf simply remaps these three enums: */
+    TEST_ASSERT_EQUAL(AscTimeField::Second,
+                      to_ascending_tf(StdTimeField::Second));
+
+    TEST_ASSERT_EQUAL(AscTimeField::Minute,
+                      to_ascending_tf(StdTimeField::Minute));
+
+    TEST_ASSERT_EQUAL(AscTimeField::Hour,
+                      to_ascending_tf(StdTimeField::Hour));
+}
+
+
 /** == Tests with Date and Time together == */
 
 /**
@@ -617,6 +652,9 @@ int main() {
     UNITY_BEGIN();
 
     /** General-purpose function tests */
+    RUN_TEST(test_to_ascending_df);
+    RUN_TEST(test_to_ascending_tf);
+
     /** From bcd_tests.cpp */
     RUN_TEST(test_int_from_bcd);
     RUN_TEST(test_bcd_from_int);

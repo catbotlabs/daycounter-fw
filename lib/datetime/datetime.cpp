@@ -51,7 +51,7 @@
 uint8_t tick_datetime_one_second(Date* date, Time* time) {
     // Increment time by one, starting with seconds
     for (uint8_t i = 0; i < 3; i++) {
-        const AscendingTimeField field = static_cast<AscendingTimeField>(i);
+        const AscTimeField field = static_cast<AscTimeField>(i);
         uint8_t& field_value = time->field(field);
         field_value++;
         if (field_value <= time->field_max_value(field)) {
@@ -65,7 +65,7 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
 
     // Increment date by one, starting with day of month
     for (uint8_t i = 0; i < 3; i++) {
-        const AscendingDateField field = static_cast<AscendingDateField>(i);
+        const AscDateField field = static_cast<AscDateField>(i);
         uint8_t& field_value = date->field(field);
         field_value++;
         if (field_value <= date->field_max_value(field)) {

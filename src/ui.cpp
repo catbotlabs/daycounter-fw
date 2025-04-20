@@ -280,7 +280,7 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
                 } else {  // Time
                     StdTimeField stf = static_cast<StdTimeField>
                                        (ui_state.active_field - 3);
-                    AscendingTimeField atf = to_ascending(stf);
+                    AscTimeField atf = to_ascending_tf(stf);
                     field = &running_time.field(atf);
                     f_min = running_time.fields_min_value();
                     f_max = running_time.field_max_value(atf);
@@ -309,7 +309,7 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
             if (sdf == StdDateField::Month) {
                 editing_months = true;
             }
-            AscendingDateField adf = to_ascending(sdf);
+            AscDateField adf = to_ascending_df(sdf);
             field = &(active_date->field(adf));
             f_min = active_date->field_min_value(adf);
             f_max = active_date->field_max_value(adf);

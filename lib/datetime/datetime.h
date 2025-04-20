@@ -22,6 +22,7 @@
 // Unit testing: Quick mock up for pgmspace tools
 #define PROGMEM
 #define memcpy_P memcpy
+#define pgm_read_byte(ptr) (*(ptr))
 #endif  // PIO_UNIT_TESTING
 
 /**
@@ -31,56 +32,62 @@
 
 
 /**
- * Provides a standardized way of referencing and
- * accessing the fields of a Date object.
+ * Enum representing the fields of a Date object.
  * 
- * These names are in "ascending" order, since they
- * progress from Day to Month to Year,
- * and Days < Months < Years in duration of time.
- */  // TODO: rename AscendingDateField -> AscDateField
-enum class AscendingDateField : uint8_t {
+ * These names are in "ascending" order:
+ * Day, Month, Year;
+ * which the same order fields are stored in a Date object.
+ */
+enum class AscDateField : uint8_t {
     Day,
     Month,
     Year
 };
 
-// TODO: document StdDateField
+/**
+ * Enum representing the fields of a Date object in
+ * the American standard order of Month, Day, then Year.
+ * 
+ * This is the order fields are shown to the user in.
+ */
 enum class StdDateField : uint8_t {
     Month,
     Day,
     Year
 };
 
-/** Shorter AscendingDateField names for convience. */
-constexpr auto ADF_DAY = AscendingDateField::Day;
-constexpr auto ADF_MONTH = AscendingDateField::Month;
-constexpr auto ADF_YEAR = AscendingDateField::Year;
+/** Shorter AscDateField names for convience. */
+constexpr auto ADF_DAY = AscDateField::Day;
+constexpr auto ADF_MONTH = AscDateField::Month;
+constexpr auto ADF_YEAR = AscDateField::Year;
 
 /**
- * Provides a standardized way of referencing and
- * accessing the fields of a Time object.
+ * Enum representing the fields of a Time object.
  * 
- * These names are in "ascending" order, since they
- * progress from Second to Minute to Hour,
- * and Seconds < Minutes < Hours in duration of time.
- */  // TODO: rename AscendingTimeField -> AscTimeField
-enum class AscendingTimeField : uint8_t {
+ * These names are in "ascending order":
+ * Second, Minute, Hour;
+ * which is the same order fields are stored in the Time object.
+ */
+enum class AscTimeField : uint8_t {
     Second,
     Minute,
     Hour
 };
 
-// TODO: document StdTimeField
+/**
+ * Enum representing the fields of a Time object in
+ * the order they are normally displayed: Hour, Minute, Second.
+ */
 enum class StdTimeField : uint8_t {
     Hour,
     Minute,
     Second
 };
 
-/** Shorter AscendingTimeField names for convience. */
-constexpr auto ATF_SECOND = AscendingTimeField::Second;
-constexpr auto ATF_MINUTE = AscendingTimeField::Minute;
-constexpr auto ATF_HOUR = AscendingTimeField::Hour;
+/** Shorter AscTimeField names for convience. */
+constexpr auto ATF_SECOND = AscTimeField::Second;
+constexpr auto ATF_MINUTE = AscTimeField::Minute;
+constexpr auto ATF_HOUR = AscTimeField::Hour;
 
 /** Return value for count_time_units_until */
 enum class TimeCountResult : uint8_t {
@@ -191,18 +198,17 @@ class Date {
     /**
      * Get a reference to the given date field.
      */
-    inline uint8_t& field(AscendingDateField field) {
+    inline uint8_t& field(AscDateField field) {
         return fields[static_cast<uint8_t>(field)];
     }
 
     /**
      * Returns the minimum allowable value for the given field.
      */
-    uint8_t field_min_value(AscendingDateField field) const {
-        if (field == AscendingDateField::Year) {
-            return 0;  // Years number starts at zero.
-        }
-        return 1;      // Month number and Day-Of-Month number start at 1.
+    uint8_t field_min_value(AscDateField field) const {
+        uint8_t raw = static_cast<uint8_t>(field);
+        /** Return 0 for AscDateField::Year (= 2), else 1. */
+        return !(raw & 0b10);  
     }
 
     /**
@@ -215,10 +221,8 @@ class Date {
      * @note If field isn't Month, Day, or Year, then
      * behavior is undefined.
      */
-    uint8_t field_max_value(AscendingDateField field) const {
+    uint8_t field_max_value(AscDateField field) const {
         switch (field) {
-            case ADF_MONTH:
-                return 12;
             case ADF_DAY: {
                 uint8_t max = pgm_read_byte(DAYS_IN_MONTH + (month() - 1));
                 if ((month() == 2) && is_leap_year(year())) {
@@ -226,6 +230,8 @@ class Date {
                 }
                 return max;
             }
+            case ADF_MONTH:
+                return 12;
             case ADF_YEAR:  // saves flash space to not have "default"
                 return 99;
         }
@@ -269,7 +275,7 @@ struct Time {
     /**
      * Get a reference to the given time field.
      */
-    inline uint8_t& field(AscendingTimeField field) {
+    inline uint8_t& field(AscTimeField field) {
         return fields[static_cast<uint8_t>(field)];
     }
 
@@ -285,8 +291,9 @@ struct Time {
      * Returns the maximum allowable value for the given time
      * field. For Hours this is 23, for Seconds or Minutes this is 59.
      */
-    uint8_t field_max_value(AscendingTimeField field) const {
-        if (field == ATF_HOUR) {
+    uint8_t field_max_value(AscTimeField field) const {
+        uint8_t raw = static_cast<uint8_t>(field);
+        if (raw & 0b10) {  // Only AscTimeField::Hour has the 2's bit set.
             return 23;
         }
         return 59;
@@ -316,7 +323,7 @@ static_assert(sizeof(DateTimeRegisters) == 7,
 
 #ifdef PIO_UNIT_TESTING  // Only expose for unit testing.
 uint8_t int_from_bcd(uint8_t bcd);
-uint8_t bcd_from_int(uint8_t num);
+uint8_t bcd_from_int(int8_t num);
 #endif
 
 /**
@@ -331,21 +338,29 @@ void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
 
 uint8_t tick_datetime_one_second(Date* date, Time* time);
 
-
-// TODO: test to_ascending__date, document
-// TODO: Optimize?
-inline AscendingDateField to_ascending(StdDateField field) {
+/**
+ * Returns the ascending-ordered Date Field enum value that correlates
+ * to the given UI-compatible StdDateField enum.
+ * 
+ * Note: Behavior is undefined for invalid enum values.
+ */
+inline AscDateField to_ascending_df(StdDateField field) {
     uint8_t raw = static_cast<uint8_t>(field);
     if (!(raw & 0b10)) {  // If it's not 0b10, then flip 0b01 and 0b00.
         raw ^= 1;
     }
-    return static_cast<AscendingDateField>(raw);
+    return static_cast<AscDateField>(raw);
 }
 
-// TODO: test to_ascending__time, document
-inline AscendingTimeField to_ascending(StdTimeField field) {
+/**
+ * Returns the ascending-ordered Time Field enum value that correlates
+ * to the given UI-compatible StdTimeField enum.
+ * 
+ * Note: Behavior is undefined for invalid enum values.
+ */
+inline AscTimeField to_ascending_tf(StdTimeField field) {
     uint8_t raw = static_cast<uint8_t>(field);
-    return static_cast<AscendingTimeField>(3 - raw);
+    return static_cast<AscTimeField>(2 - raw);  // simply flip the order.
 }
 
 /** String-formatting tools: */

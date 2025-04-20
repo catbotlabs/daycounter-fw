@@ -21,8 +21,22 @@
  * configuration parameters in certain bits, some additional bit-masking
  * is necessary before passing the raw register data as the argument.
  */
-uint8_t int_from_bcd(uint8_t bcd) {
+/*uint8_t int_from_bcd(uint8_t bcd) {
     return 10 * (bcd >> 4) + (bcd & 15);
+}*/
+
+
+// based on "BCD2bin8" from ATMEL AVR204: BCD Arithmetics appnote
+uint8_t int_from_bcd(uint8_t bcd) {
+    uint8_t result = bcd & 15;
+    while (true) {
+        bcd -= 16;
+        // Check if `bcd` wrapped around negative:
+        if (bcd > 0x99) {  // more testable than using half-carry
+            return result;
+        }
+        result += 10;   
+    }
 }
 
 /**
@@ -34,8 +48,21 @@ uint8_t int_from_bcd(uint8_t bcd) {
  * 
  * @param num the given number, which must be between 0 and 99.
  */
-uint8_t bcd_from_int(uint8_t num) {
+
+/*uint8_t bcd_from_int(uint8_t num) {
     return ((num / 10) << 4) | (num % 10);
+}*/
+
+// based on "bin2BCD8" from ATMEL AVR204: BCD Arithmetics appnote
+uint8_t bcd_from_int(int8_t num) {
+    uint8_t msd = 0;
+    while (num >= 10) {
+        num -= 10;
+        msd += 16;
+    }
+    // MSD is now properly set
+    // num is now the LSD
+    return num | msd;
 }
 
 /** 
@@ -75,6 +102,8 @@ void datetime_from_registers(Date* date, Time* time,
  * Date/Time objects are out-of-bounds, which won't happen in normal
  * operation, and, b) I'm pretty sure if you do write a 1 to them,
  * nothing would happen anyway.
+ * 
+ * No bounds checking! Date and Time fields must be within their bounds!
  */
 void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
         const Time& time) {
