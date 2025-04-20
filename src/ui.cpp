@@ -389,9 +389,10 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
             }
         }
 
-        // Redraw if the active field has changed.
+        // Redraw screen and recount display if the active field has changed.
         if (*field != prev_field_val) {
             ui_state.dirty = true;
+            busy_flags |= BF_RECOUNT;
         }
     }
 
@@ -464,7 +465,7 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
     }
     switch (state->mm_page) {
         case MainMenuPage::TargetDate: {
-            state->mm_scrollbar_top = 0;
+            state->mm_scrollbar_top = 0;  // TODO: collapse to array?
             state->mmpg_header_width = (6*17);
 
             // Draw the header

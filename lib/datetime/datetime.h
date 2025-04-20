@@ -118,7 +118,7 @@ enum class TimeCountDirection : uint8_t {
  * So it's necessary to get the days in the month as such:
  *  @code DAYS_IN_MONTH[date.month() - 1]  @endcode
  */
-static const uint8_t DAYS_IN_MONTH[12] =
+static const uint8_t DAYS_IN_MONTH[12] PROGMEM =
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 /**
@@ -220,7 +220,7 @@ class Date {
             case ADF_MONTH:
                 return 12;
             case ADF_DAY: {
-                uint8_t max = DAYS_IN_MONTH[month() - 1];
+                uint8_t max = pgm_read_byte(DAYS_IN_MONTH + (month() - 1));
                 if ((month() == 2) && is_leap_year(year())) {
                     max++;  // February has 29 days if it's a leap year.
                 }
@@ -332,29 +332,20 @@ void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
 uint8_t tick_datetime_one_second(Date* date, Time* time);
 
 
-// TODO: test to_ascending__date
+// TODO: test to_ascending__date, document
 // TODO: Optimize?
 inline AscendingDateField to_ascending(StdDateField field) {
-    switch (field) {
-        case StdDateField::Month:
-            return AscendingDateField::Month;
-        case StdDateField::Day:
-            return AscendingDateField::Day;
-        case StdDateField::Year:
-            return AscendingDateField::Year;
+    uint8_t raw = static_cast<uint8_t>(field);
+    if (!(raw & 0b10)) {  // If it's not 0b10, then flip 0b01 and 0b00.
+        raw ^= 1;
     }
+    return static_cast<AscendingDateField>(raw);
 }
 
-// TODO: test to_ascending__time
+// TODO: test to_ascending__time, document
 inline AscendingTimeField to_ascending(StdTimeField field) {
-    switch (field) {
-        case StdTimeField::Hour:
-            return AscendingTimeField::Hour;
-        case StdTimeField::Minute:
-            return AscendingTimeField::Minute;
-        case StdTimeField::Second:
-            return AscendingTimeField::Second;
-    }
+    uint8_t raw = static_cast<uint8_t>(field);
+    return static_cast<AscendingTimeField>(3 - raw);
 }
 
 /** String-formatting tools: */
