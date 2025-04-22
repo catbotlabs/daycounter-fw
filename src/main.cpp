@@ -212,7 +212,9 @@ inline void loop() {
         /** These are the buttons that have been pressed since last debounce */
         uint8_t ev_pressed = pressed_buttons & ~last_pressed_buttons;
 
+        PORTA |= (1 << PA2);  // OE pin: high (disable display)
         ui_btn_input(btn_helper(ev_pressed), 0);
+        PORTA &= ~(1 << PA2);  // OE pin: low (enable display)
 
         last_pressed_buttons = pressed_buttons;
     }
@@ -229,26 +231,22 @@ inline void loop() {
             running_date, running_time,
             running_settings.count_unit, running_settings.count_direction,
             &count);
-            swuart_mode_tx();
         switch (result) {
             case TimeCountResult::OK: {
                 set_glyphs(count, glyphs);
-                swuart_write('K');
                 break;
             }
             case TimeCountResult::Negative: {
                 glyphs[0] = glyphs[2] = 0x00;
                 glyphs[1] = GLYPH_DASH | 1;
-                swuart_write('N');
                 break;
             }
             case TimeCountResult::Overflow: {
                 glyphs[0] = glyphs[1] = glyphs[2] = GLYPH_DASH;
                 glyphs[1] |= 1;
-                swuart_write('V');
+                break;
             }
         }
-        swuart_mode_rx();
     }
 }
 

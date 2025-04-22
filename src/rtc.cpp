@@ -64,10 +64,10 @@ bool rtc_write_byte(uint8_t addr, uint8_t data) {
     TinyI2C.start(RTC_ADDR, 0);
     TinyI2C.write(addr);
     if (!TinyI2C.write(data)) {
-        return false;
+        return true;
     }
     TinyI2C.stop();
-    return true;
+    return false;
 }
 
 
@@ -173,7 +173,9 @@ bool rtc_write_timekeeping_registers(const DateTimeRegisters& rg) {
 
     /** Send the register bytes to the RTC */
     for (int i = 0; i < 7; i ++) {
-        TinyI2C.write(reinterpret_cast<const uint8_t*>(&rg)[i]);
+        if (!TinyI2C.write(reinterpret_cast<const uint8_t*>(&rg)[i])) {
+            return false;
+        }
     }
     TinyI2C.stop();
     return true;

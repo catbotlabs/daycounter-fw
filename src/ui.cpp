@@ -19,7 +19,7 @@
  * When in the main menu, how many seconds of
  * inactivity before the screen blanks
  */
-const uint8_t MAINMENU_TIMEOUT_S = 6;
+const uint8_t MAINMENU_TIMEOUT_S = 15;
 
 /** Switch to "fast repeat" mode on the given Nth repeat. */
 const uint8_t FAST_REPEAT_BUILDUP = 5;
@@ -29,11 +29,11 @@ const uint8_t FAST_REPEAT_INCREMENTS = 5;
 
 // Labels for the CountUnit field
 // It is 3 substrings that are 5 chars long each.
-static const char CountUnitLabels[] PROGMEM = "Days\0HoursWeeks";
+static const char CountUnitLabels[] PROGMEM = "Days HoursWeeks";
 
 // Labels for the CountDirection field
 // It is 2 substrings that are 6 chars long each.
-static const char CountDirectionLabels[] PROGMEM = "Ahead\0Behind";
+static const char CountDirectionLabels[] PROGMEM = "Ahead Behind";
 
 enum class Layer : uint8_t {
     Blank,
@@ -259,7 +259,8 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
 
     if (btn.down() || btn.up()) {
         uint8_t* field;
-        uint8_t f_min;
+        // f_min is 0 for everything but the Day and Month fields.
+        uint8_t f_min = 0;
         uint8_t f_max;
         Date* active_date = nullptr;
 
@@ -282,7 +283,6 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
                                        (ui_state.active_field - 3);
                     AscTimeField atf = to_ascending_tf(stf);
                     field = &running_time.field(atf);
-                    f_min = running_time.fields_min_value();
                     f_max = running_time.field_max_value(atf);
                 }
                 break;
@@ -290,11 +290,11 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
             case MainMenuPage::CountMode: {
                 if (ui_state.active_field == 0) {
                     field = reinterpret_cast<uint8_t*>(&running_settings.count_unit);
+                    f_max = 2;
                 } else {
+                    f_max = 1;
                     field = reinterpret_cast<uint8_t*>(&running_settings.count_direction);
                 }
-                f_min = 0;
-                f_max = 1;
                 break;
             }
         }
@@ -431,6 +431,8 @@ void ui_draw(UIState* state) {
     static UIState last_state;
     if (!(*state != last_state)) return;
 
+    PORTA |= (1 << PA2);  // OE pin: high (disable display)
+
     if (state->layer != last_state.layer) {
         ssd1306_clearScreen();
     }
@@ -449,6 +451,10 @@ void ui_draw(UIState* state) {
         }
     }
 
+    if (oe_mode == OEMODE_OE) {
+        PORTA &= ~(1 << PA2);  // OE pin: low (enable display)
+    }
+
     /** Reset general-purpose redraw flag */
     state->dirty = false;
 
@@ -463,6 +469,7 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
     if (page_changed) {
         ssd1306_clearBlock((6*10), 2, (12*10)-(6*10), 16);
     }
+
     switch (state->mm_page) {
         case MainMenuPage::TargetDate: {
             state->mm_scrollbar_top = 0;  // TODO: collapse to array?
@@ -552,7 +559,6 @@ enum class ArrowDirection : uint8_t {
 };
 
 
-
 /**
  * @brief Procedurally draw an arrow given its direction (up/down)
  * and its top-left coordinates.
@@ -598,6 +604,7 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
     }
 
     // The x position of the left of the big main text.
+    // By default, this is the indentation level of the Date text.
     uint8_t main_text_x = 0;
 
     switch (state->mm_page) {
@@ -626,29 +633,26 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
             break;
         }
         case MainMenuPage::CountMode: {
-
-
-
             if (state->hz_page == LeftOrRight::Left) {  // Left page: Count Unit
                 uint8_t field_val = static_cast<uint8_t>
                                     (running_settings.count_unit);
                 memcpy_P(ui_strbuf, CountUnitLabels + (field_val * 5), 5);
-                main_text_x = 40;
+                main_text_x = 24;
                 state->fe_arrow_left = 46;
                 ui_strbuf[5] = '\0';  // terminating character
-                ssd1306_printFixedN(0, 0, "Units", STYLE_NORMAL, 0);
             } else {  // Right page: Count Direction
                 uint8_t field_val = static_cast<uint8_t>
                                     (running_settings.count_direction);
                 memcpy_P(ui_strbuf, CountDirectionLabels + (field_val * 6), 6);
-                main_text_x = 24;
-                state->fe_arrow_left = 30;
+                main_text_x = 42;
+                state->fe_arrow_left = 72;
                 ui_strbuf[6] = '\0';  // terminating character
-                ssd1306_printFixedN(0, 0, "Direction", STYLE_NORMAL, 0);
             }
             break;
         }
     }
+
+
 
     // Draw the big main text
     ssd1306_printFixedN(main_text_x, 8, ui_strbuf, STYLE_NORMAL, 1);
