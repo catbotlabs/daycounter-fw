@@ -35,7 +35,7 @@ uint8_t int_from_bcd(uint8_t bcd) {
         if (bcd > 0x99) {  // more testable than using half-carry
             return result;
         }
-        result += 10;   
+        result += 10;
     }
 }
 

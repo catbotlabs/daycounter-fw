@@ -145,7 +145,7 @@ void setup() {
         glyphs[2] = 0x50;  // 'r'
         glyphs[1] = 0x79;  // 't'
         glyphs[0] = 0x58;  // 'c'
-        fatal_infinite_display_loop(PS("RTC comm fail"));  // failed to communicate with RTC
+        fatal_infinite_display_loop(PS("RTC comm fail"));
         break;
       case RTCInitResult::Unset:
         swuart_writeln(PS("RTC unset"));  // RTC registers weren't set properly

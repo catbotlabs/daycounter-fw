@@ -208,7 +208,7 @@ class Date {
     uint8_t field_min_value(AscDateField field) const {
         uint8_t raw = static_cast<uint8_t>(field);
         /** Return 0 for AscDateField::Year (= 2), else 1. */
-        return !(raw & 0b10);  
+        return !(raw & 0b10);
     }
 
     /**

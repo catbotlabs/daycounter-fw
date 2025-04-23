@@ -9,6 +9,9 @@
  * (See the LICENSE file)
  */
 
+// NOLINTBEGIN(whitespace/line_length)
+// (I'm OK with long lines in this file)
+
 #include "ui.h"
 #include "buttons.h"
 #include "globals.h"
@@ -304,7 +307,7 @@ void ui_logic_layer_fieldedit(btn_helper btn, uint8_t repeats) {
 
     uint8_t max_field_index = MAX_FIELD_INDEX_PAGE_MAP[
         static_cast<uint8_t>(ui_state.mm_page)];
-    
+
     /** Left/Right press: Change selected field */
     if (btn.left()) {
         if (ui_state.field_index == 0) {
@@ -386,8 +389,8 @@ void ui_logic_fieldedit_field_mod(btn_helper btn, uint8_t repeats) {
                 field = reinterpret_cast<uint8_t*>(&running_settings.count_unit);
                 f_max = 2;
             } else {
-                f_max = 1;
                 field = reinterpret_cast<uint8_t*>(&running_settings.count_direction);
+                f_max = 1;
             }
             break;
         }
@@ -485,7 +488,7 @@ void ui_logic_fieldedit_field_mod(btn_helper btn, uint8_t repeats) {
     if (*field != prev_field_val) {
         ui_state.dirty = true;        // Redraw screen
         ui_state.fe_modified = true;  // Mark for saving to storage
-        busy_flags |= BF_RECOUNT;     // Re-count the number for the numeric display
+        busy_flags |= BF_RECOUNT;     // Re-count the number shown on display
     }
 }
 
@@ -790,3 +793,5 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
         draw_arrow(ArrowDirection::Down, state->fe_arrow_left, 24);
     }
 }
+
+// NOLINTEND
