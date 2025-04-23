@@ -12,8 +12,7 @@
 #include "display.h"
 #include "glyphdefs.h"
 
-void set_glyphs(int16_t count, DisplayGlyphs glyphs) {
-    // TODO: rename set_glyphs
+void set_glyphs_0_to_999(int16_t count, DisplayGlyphs glyphs) {
     if (count > 99) {
         // set hundreds digit
         glyphs[2] = pgm_read_byte(&DIGIT_GLYPHS[count / 100]);
@@ -34,4 +33,3 @@ void set_glyphs(int16_t count, DisplayGlyphs glyphs) {
     // set ones digit
     glyphs[0] = pgm_read_byte(&DIGIT_GLYPHS[count % 10]);
 }
-#

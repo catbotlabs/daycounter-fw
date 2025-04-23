@@ -233,7 +233,7 @@ inline void loop() {
             &count);
         switch (result) {
             case TimeCountResult::OK: {
-                set_glyphs(count, glyphs);
+                set_glyphs_0_to_999(count, glyphs);
                 break;
             }
             case TimeCountResult::Negative: {

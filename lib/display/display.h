@@ -30,7 +30,7 @@ void setup_display();
  * @param count: The given three-digit number. Must be between 0 and 999,
  * no bounds checking.
  */
-void set_glyphs(int16_t count, DisplayGlyphs glyphs);
+void set_glyphs_0_to_999(int16_t count, DisplayGlyphs glyphs);
 
 
 void display_glyphs_oe(const DisplayGlyphs glyphs);
