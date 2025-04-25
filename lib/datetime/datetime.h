@@ -151,15 +151,20 @@ static const char MONTH_NAMES_P[(3 * 12) + 1] PROGMEM =
 /**
  * Calendar date: Stores day-of-month, month, and year.
  * 
- * Default value is unset!
+ * Default value is undefined!
  * 
- * The Day and Month are stored the way they are typically
- * interpreted: Month 1 is January, Month 3 is March.
- *              Day 1 is first day of month, etc.
+ * The Day and Month are stored the way they are typically written:
+ *     Month 1 is January, Month 3 is March.
+ *     Day 1 is first day of month, etc.
  * So, Month 0 is invalid, and Day 0 is invalid.
  * 
  * The Year is an integer ranging from 0 to 99, representing
  * the last two digits of the current year A.D.
+ * 
+ * @note: This object does not check the bounds of the fields.
+ * It is on the user to be careful that the field values stay
+ * between the minimum and maximum bounds. Use the field_min_value
+ * and field_max_value functions to help with clamping and wrapping.
  */
 class Date {
     /** Stored in ascending order: {day, month, year} */
@@ -252,9 +257,14 @@ class Date {
 /**
  * Time-of-day: Stores seconds, minutes, and hours.
  * 
- * Default value is unset!
+ * Default value is undefined!
  * 
  * Time is stored as 24-hour time (Hours go up to 23, no AM/PM).
+ * 
+ * @note: This object does not check the bounds of the fields.
+ * It is on the user to be careful that the field values stay
+ * between the minimum and maximum bounds. Use the fields_min_value
+ * and field_max_value functions to help with clamping and wrapping.
  */
 struct Time {
     /** Stored in ascending order: {second, minute, hour} */
@@ -362,12 +372,18 @@ uint8_t bcd_from_int(int8_t num);
 /** == MCP7940N RTC Register I/O functions == */
 
 /**
- * Sets all members of a DateTime object using
+ * Sets all members of Date/Time objects from
  * the buffered raw register data from the MCP7940N RTC.
  */
 void datetime_from_registers(Date* date, Time* time,
     const DateTimeRegisters& rg);
 
+/**
+ * Sets the timekeeping bits of the MCP7940N RTC using
+ * the values from a Date and a Time object.
+ * 
+ * @note: No bounds checking! Date and Time fields must be within their bounds!
+ */
 void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
     const Time& time);
 
