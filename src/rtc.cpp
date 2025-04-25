@@ -12,11 +12,9 @@
 #include "rtc.h"
 #include <util/delay.h>   // for _delay_us()
 #include <TinyI2CMaster.h>
-#include <uart.h>
 #include "datetime.h"
 
 const uint8_t RTC_ADDR = 0x6f;
-
 
 /// == RTC Register Definitions ==
 const uint8_t RTCSEC = 0x00;
@@ -38,7 +36,6 @@ const uint8_t OSCRUN = 5;
 
 // 0x07 CONTROL:
 const uint8_t SQWEN = 6;
-
 
 
 /**

@@ -42,12 +42,6 @@
 #endif  // PIO_UNIT_TESTING
 
 /**
- * Date and Time fields are stored in ascending order:
- *  [second, minute, hour] and [day, month, year]
- */
-
-
-/**
  * Enum representing the fields of a Date object.
  * 
  * These names are in "ascending" order:
@@ -193,34 +187,12 @@ class Date {
     uint8_t& month() { return fields[1]; }
     uint8_t& year()  { return fields[2]; }
 
-    /**
-     * Returns true if the given year is a leap year.
-     * 
-     * @param in_year: The given year, from 0 to 99.
-     * @returns TRUE if year is a multiple of 4, UNLESS
-     * year is 0 (century year), then returns FALSE.
-     */
-    static inline bool is_leap_year(uint8_t in_year) {
-        return in_year && ((in_year % 4) == 0);
-    }
-
-    /**
-     * Returns true if the "now" date is before the "ref" date.
-     */
-    bool is_before(const Date& other) const;
-
-    uint16_t count_days_until(const Date& target) const;
-
-    /**
-     * Get a reference to the given date field.
-     */
+    /** Returns a reference to the field specified by AscDateField enum */
     inline uint8_t& field(AscDateField field) {
         return fields[static_cast<uint8_t>(field)];
     }
 
-    /**
-     * Returns the minimum allowable value for the given field.
-     */
+    /** Returns the minimum allowable value for the given field. */
     uint8_t field_min_value(AscDateField field) const {
         uint8_t raw = static_cast<uint8_t>(field);
         /** Return 0 for AscDateField::Year (= 2), else 1. */
@@ -253,6 +225,28 @@ class Date {
         }
         // ~~ Undefined behavior (saves 64 bytes of program space) ~~
     }
+
+    /**
+     * Returns true if the given year is a leap year.
+     * 
+     * @param in_year: The given year, from 0 to 99.
+     * @returns True if year is a multiple of 4,
+     *          UNLESS year is 0 (century year).
+     */
+    static inline bool is_leap_year(uint8_t in_year) {
+        return in_year && ((in_year % 4) == 0);
+    }
+
+    /** Returns true if this date is before the "other" date. */
+    bool is_before(const Date& other) const;
+
+    /**
+     * Returns the number of days from this date until the given target date.
+     * 
+     * @note: The `target` date must not be before
+     * this date... undefined behavior will result!
+     */
+    uint16_t count_days_until(const Date& target) const;
 };
 
 /**
@@ -288,9 +282,7 @@ struct Time {
     uint8_t& minute() { return fields[1]; }
     uint8_t& hour()   { return fields[2]; }
 
-    /**
-     * Get a reference to the given time field.
-     */
+    /** Returns a reference to the given time field. */
     inline uint8_t& field(AscTimeField field) {
         return fields[static_cast<uint8_t>(field)];
     }
@@ -327,7 +319,7 @@ struct __attribute__((packed)) DateTimeRegisters {
     uint8_t rtcsec;
     uint8_t rtcmin;
     uint8_t rtchour;
-    uint8_t rtcwkday;  // Unused & untested outside of I2C-interfacing code
+    uint8_t rtcwkday;  // Unused outside of I2C-interfacing code
     uint8_t rtcdate;
     uint8_t rtcmth;
     uint8_t rtcyear;
@@ -335,24 +327,6 @@ struct __attribute__((packed)) DateTimeRegisters {
 
 static_assert(sizeof(DateTimeRegisters) == 7,
     "DateTimeRegisters must be 7 bytes long!");
-
-
-#ifdef PIO_UNIT_TESTING  // Only expose for unit testing.
-uint8_t int_from_bcd(uint8_t bcd);
-uint8_t bcd_from_int(int8_t num);
-#endif
-
-/**
- * Sets all members of a DateTime object using
- * the buffered raw register data from the MCP7940N RTC.
- */
-void datetime_from_registers(Date* date, Time* time,
-    const DateTimeRegisters& rg);
-
-void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
-    const Time& time);
-
-uint8_t tick_datetime_one_second(Date* date, Time* time);
 
 /**
  * Returns the ascending-ordered Date Field enum value that correlates
@@ -379,7 +353,72 @@ inline AscTimeField to_ascending_tf(StdTimeField field) {
     return static_cast<AscTimeField>(2 - raw);  // simply flip the order.
 }
 
-/** String-formatting tools: */
+#ifdef PIO_UNIT_TESTING  // Only expose BCD functions for unit testing
+uint8_t int_from_bcd(uint8_t bcd);
+uint8_t bcd_from_int(int8_t num);
+#endif
+
+
+/** == MCP7940N RTC Register I/O functions == */
+
+/**
+ * Sets all members of a DateTime object using
+ * the buffered raw register data from the MCP7940N RTC.
+ */
+void datetime_from_registers(Date* date, Time* time,
+    const DateTimeRegisters& rg);
+
+void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
+    const Time& time);
+
+
+/** == Date/Time counting utilities == */
+
+/**
+ * Increments the given Date/Time by one second, performing all
+ * necessary carries.
+ * 
+ * @returns The greatest field that was incremented.
+ * Possible return values:
+ *   0:  +1 second (no carry)
+ *   1:  +1 minute (seconds wrap)
+ *   2:  +1 hour   (minutes wrap)
+ *   3:  +1 day    (hours wrap)
+ *   4:  +1 month  (days wrap)
+ *   5:  +1 year   (months wrap)
+ *   6:  years wraps from 99 to 0.
+ */
+uint8_t tick_datetime_one_second(Date* date, Time* time);
+
+/**
+ * Counts the number of time units (as specified) from the given
+ * Time and Date until the beginning of the first hour of the
+ * specified target date.
+ * 
+ * @param target: The date we are counting towards
+ * @param now_d, now_t: Current date and time
+ * @param count_unit: Whether count is in hours, days, or weeks.
+ * @param direction: AHEAD if we're counting from `now` to `target`
+ *                or BEHIND if we're counting from `target` to `now`
+ * @param count: Pointer to where the counted number will be stored on success.
+ * 
+ * @returns: - OK if count was successful.
+ *             The value of `count` is set between 0 and 999.
+ *
+ *           - NEGATIVE if the target and date are backwards verses
+ *             the given `direction` (count would be negative).
+ *             The value of `count` is unchanged.
+ *
+ *           - OVERFLOW if the count would exceed 999.
+ *             The value of `count` is unchanged.
+ */
+TimeCountResult count_time_units_until(const Date& target,
+    const Date& now_d, const Time& now_t,
+    TimeCountUnit count_unit, TimeCountDirection direction,
+    uint16_t* count);
+
+
+/** == String-formatting tools == */
 
 /**
  * @brief Convert a two-digit integer into the first two
@@ -398,13 +437,13 @@ inline AscTimeField to_ascending_tf(StdTimeField field) {
  * 
  *    num     cstr
  *  ----------------
- *     0   |  '00'
- *     1   |  '01'
- *     9   |  '09'
- *     24  |  '24'
- *     70  |  '70'
- *     99  |  '99'
- *    100  |  ':0'  (error: undefined!)
+ *     0   |  "00"
+ *     1   |  "01"
+ *     9   |  "09"
+ *     24  |  "24"
+ *     70  |  "70"
+ *     99  |  "99"
+ *    100  |  ":0"  (outside bounds-- undefined!)
  *    ...  |  undefined
  *  ----------------
  * 
@@ -442,14 +481,5 @@ void generate_date_string(char* buffer, const Date& date);
  * A '\0' terminating character is written at the end.
  */
 void generate_time_string(char* buffer, const Time& time);
-
-/**
- * TODO: document
- */
-TimeCountResult count_time_units_until(const Date& target,
-        const Date& now_d, const Time& now_t,
-        TimeCountUnit count_unit, TimeCountDirection direction,
-        uint16_t* count);
-
 
 #endif  // LIB_DATETIME_DATETIME_H_

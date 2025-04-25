@@ -28,12 +28,11 @@
 
 /** 
  * @details This DateTime code implements the following functions:
- *   - Reading DateTime object from raw RTC registers
- *   - Writing DateTime object to raw RTC registers
- *   - Incrementing a DateTime by 1 second, performing all carries. (for PPS)
- *   - Incrementing individual parameters of a DateTime or Date object
- *       by one or more, w/o carries but with proper clamping and/or wrapping.
- *   - Calculating the delta between the current time and a Date.
+ *   - Date/Time objects with functions to get min/max allowable field values.
+ *   - Reading Date/Time objects from raw RTC registers
+ *   - Writing Date/Time objects to raw RTC registers
+ *   - Incrementing Date/Time by 1 second, performing all carries. (for PPS)
+ *   - Calculating the delta between the current Date/Time and a Date.
  * 
  * This code is all abstract, as in, it does not interact with the MCU or RTC's
  * hardware directly. Thus, all the above functions are portable enough to
@@ -41,10 +40,10 @@
  */
 
 #include "datetime.h"
-#include <stdlib.h>  /** for abs() */
 
 /**
- * Increment the time by one second and perform all necessary carries.
+ * Increments the given Date/Time by one second,
+ * performing all necessary carries.
  * 
  * If any of the fields are out of bound,
  * then undefined behaviour will result!
@@ -59,8 +58,7 @@
  *   5:  +1 year   (months wrap)
  *   6:  years wraps from 99 to 0.
  * 
- * @note Fails to follow century leap year rules. All century years
- * are leap years according to this function.
+ * @note See Date::is_leap_year for leap year qualification.
  * 
  */
 uint8_t tick_datetime_one_second(Date* date, Time* time) {
@@ -94,7 +92,7 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
 
 
 /**
- * Returns true if the "now" date is before the "ref" date.
+ * Returns true this date is before the "other" date.
  */
 bool Date::is_before(const Date& other) const {
     if (year() == other.year()) {
@@ -125,15 +123,9 @@ bool Date::is_before(const Date& other) const {
     return year() < other.year();  // is this year before the other?
 }
 
-
 /**
- * NOTE: set_glyph should have its out-of-bounds handling removed
- * so its more like set_glyphs_from_count.
- */
-
-
-/**
- * @brief Returns the number of days until the given date.
+ * @brief Returns the number of days from this date
+ * until the given target date.
  * 
  * @note Always assumes that the "target" date is ahead of
  * "this" date, so do not use this method to count backwards!
@@ -197,29 +189,10 @@ uint16_t Date::count_days_until(const Date& target) const {
     return count + (target.day() - now.day());
 }
 
-// TODO: document
-const uint16_t HOUR_COUNT_MAX_DAY_COUNT = (1000 / 24) + 2;
-
-/** TODO: document
- * 
- * @param target: The date we are counting towards
- * @param now_d, now_t: Current date and time.
- * @param count_unit: Whether given count is in hours, days, or weeks.
- * @param direction: AHEAD if we're counting from `now` to `target`
- *                or BEHIND if we're counting from `target` to `now`
- *
- * @param count: Points to where the counted number will be stored.
- * 
- * @returns: - OK if count was successful.
- *             The value of `count` is set between 0 and 999.
- *
- *           - NEGATIVE if the target and date are backwards verses
- *             the given `direction`.
- *             The value of `count` is unchanged.
- *
- *           - OVERFLOW if the count is in the right direction, but the
- *             result would exceed 999.
- *             The value of `count` is unchanged.
+/**
+ * Counts the number of time units (as specified) from the given
+ * Time and Date until the beginning of the first hour of the
+ * specified target date.
  */
 TimeCountResult count_time_units_until(const Date& target,
         const Date& now_d, const Time& now_t,
@@ -232,7 +205,6 @@ TimeCountResult count_time_units_until(const Date& target,
 
     if (direction == TimeCountDirection::Ahead) {
         /** We are counting from "now" to "target" */
-
         if (target.is_before(now_d)) {
             /** Target is before now! Cannot count backwards. */
             return TimeCountResult::Negative;
@@ -241,7 +213,6 @@ TimeCountResult count_time_units_until(const Date& target,
         hours_delta *= -1;
     } else {  // BEHIND
         /** We are counting from "target" to "now" */
-
         if (now_d.is_before(target)) {
             /** Now is before target! Cannot count backwards. */
             return TimeCountResult::Negative;
@@ -269,19 +240,22 @@ TimeCountResult count_time_units_until(const Date& target,
         default: {  // Hours
             uint16_t hour_count;
 
+            // Enough days to have 1000 hours plus some margin.
+            const uint16_t HOUR_COUNT_MAX_DAYS = (1000 / 24) + 2;
+
             /** Make sure we do not overflow hour_count. */
-            if (day_count > HOUR_COUNT_MAX_DAY_COUNT) {
+            if (day_count > HOUR_COUNT_MAX_DAYS) {
                 return TimeCountResult::Overflow;
             }
             hour_count = day_count * 24;
 
-            /**
-             * Catch the scenario when counting AHEAD,
-             * where the day_count is 0 and the hours_delta
-             * is negative.
-             */
             if (hours_delta < 0 && uint8_t(-hours_delta) > hour_count) {
-                    return TimeCountResult::Negative;
+                /**
+                 * The Dates are equal, and the current hour is past the
+                 * first hour of the day. The number of hours until the
+                 * beginning of the target date is negative.
+                 */
+                return TimeCountResult::Negative;
             }
 
             // Subtract the hours already past in today's time
@@ -295,11 +269,3 @@ TimeCountResult count_time_units_until(const Date& target,
         }
     }
 }
-
-/**
- * Remaining functionality to add:
- *   - Date delta In_Future/In_Past calculator  / Check if delta is within display bounds
- *   - Time delta calculator function
- *   - Date / Time specialty individual field increment/decrement functions
- */
-

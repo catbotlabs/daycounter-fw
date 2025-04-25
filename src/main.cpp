@@ -28,15 +28,15 @@
 #include <avr/wdt.h>
 #include <TinyI2CMaster.h>
 #include "globals.h"
-#include "rtc.h"
 #include "datetime.h"
+#include "rtc.h"
+#include "settings.h"
 #include "display.h"
 #include "glyphdefs.h"
 #include "buttons.h"
 #include "ui.h"
 #include "uart.h"
 #include "commands.h"
-#include "settings.h"
 
 /** globals.h definitions */
 Date running_date;
@@ -52,7 +52,7 @@ static DisplayGlyphs glyphs;
 static uint8_t num_repeats;
 
 /**
- * Print an error message and display whatever is in @ref glyphs
+ * Print an error message and display the global `glyphs`
  * on the digital display in an infinite loop.
  */
 void fatal_infinite_display_loop(const ProgmemString* msg) {
@@ -229,9 +229,8 @@ inline void loop() {
         /** These are the buttons that have been pressed since last debounce */
         uint8_t ev_pressed = pressed_buttons & ~last_pressed_buttons;
 
-        PORTA |= (1 << PA2);  // OE pin: high (disable display)
+        /** Process the press events in the UI code */
         ui_btn_input(btn_helper(ev_pressed), 0);
-        PORTA &= ~(1 << PA2);  // OE pin: low (enable display)
 
         last_pressed_buttons = pressed_buttons;
     }
@@ -239,6 +238,8 @@ inline void loop() {
         /** Button repeat timer triggered */
         num_repeats++;
         uint8_t repeated_button = get_repeated_button_flag();
+
+        /** Process the repeat event in the UI code */
         ui_btn_input(btn_helper(1 << repeated_button), num_repeats);
     }
     if (flags & BF_RECOUNT) {
