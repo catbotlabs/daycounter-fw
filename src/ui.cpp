@@ -578,6 +578,7 @@ static const char COUNT_DIRECTION_LABELS_P[] PROGMEM = "Ahead Behind";
  */
 static char ui_strbuf[17];
 
+/** X-position of the arrows for each field when editing a Date */
 
 void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
     bool page_changed = state->mm_page != last_state.mm_page ||
@@ -588,9 +589,10 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
         ssd1306_clearBlock((6*10), 2, (12*10)-(6*10), 16);
     }
 
+    state->mm_scrollbar_top = 10 * static_cast<uint8_t>(state->mm_page);
+
     switch (state->mm_page) {
         case MainMenuPage::TargetDate: {
-            state->mm_scrollbar_top = 0;  // TODO: collapse to array?
             state->mmpg_header_width = (6*17);
 
             // Draw the header
@@ -602,7 +604,6 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             break;
         }
         case MainMenuPage::RtcClock: {
-            state->mm_scrollbar_top = 10;
             state->mmpg_header_width = (6*15);
 
             // Draw the header
@@ -622,7 +623,6 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             break;
         }
         case MainMenuPage::CountMode: {
-            state->mm_scrollbar_top = 20;
             state->mmpg_header_width = (6*16);
 
             // Draw the header
@@ -772,22 +772,22 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
     // Draw the big main text
     ssd1306_printFixedN(main_text_x, 8, ui_strbuf, STYLE_NORMAL, 1);
 
-                    // TODO: fix visual glitch with ellipses
-    /** Draw ellipses to show there's more fields to the left/right */
-    if (state->mm_page != MainMenuPage::TargetDate) {   // If ellipses_x != 255
-        uint8_t ellipses_x = 0;
-        if (state->hz_page == LeftOrRight::Left) {
-            ellipses_x = 110;
-        }
-        ssd1306_printFixedN(ellipses_x, 24, "...", STYLE_NORMAL, 0);
-    }
-
     /** Redraw arrows if they moved, or if we just entered FieldEdit layer */
     if (state->fe_arrow_left != last_state.fe_arrow_left ||
             state->layer != last_state.layer) {
         /** Clear arrows at the previous location */
         ssd1306_clearBlock(last_state.fe_arrow_left, 0, 9, 8);
         ssd1306_clearBlock(last_state.fe_arrow_left, 3, 9, 8);
+
+        /** Draw ellipses to show there's more fields to the left/right */
+        if (state->mm_page != MainMenuPage::TargetDate) {
+            uint8_t ellipses_x = 0;
+            if (state->hz_page == LeftOrRight::Left) {
+                ellipses_x = 110;
+            }
+            ssd1306_printFixedN(ellipses_x, 24, "...", STYLE_NORMAL, 0);
+        }
+
         /** Draw arrows at the new location */
         draw_arrow(ArrowDirection::Up, state->fe_arrow_left, 0);
         draw_arrow(ArrowDirection::Down, state->fe_arrow_left, 24);

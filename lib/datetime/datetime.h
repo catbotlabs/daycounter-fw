@@ -229,7 +229,7 @@ class Date {
                 return 99;
         }
         // ~~ Undefined behavior (saves 64 bytes of program space) ~~
-    }
+    }  // ignore this warning ;)
 
     /**
      * Returns true if the given year is a leap year.

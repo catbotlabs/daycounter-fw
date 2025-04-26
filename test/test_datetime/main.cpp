@@ -486,7 +486,7 @@ void test_count_time_units_until() {
 
     TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
     TEST_ASSERT_EQUAL(144, count);  // 144 day delta
-                                
+
     // Weeks, AHEAD
     count = 33;
     result = count_time_units_until(
@@ -517,7 +517,7 @@ void test_count_time_units_until() {
     count = 101;
     result = count_time_units_until(
         Date(6, 5, 30),    // target:   Jun 05, '30
-        Date(6, 1, 30),    // now date: Jun 01, '30 
+        Date(6, 1, 30),    // now date: Jun 01, '30
         Time(15, 30, 0),   // now time: 15:30:00
         TimeCountUnit::Hours,
         TimeCountDirection::Ahead,
@@ -529,7 +529,7 @@ void test_count_time_units_until() {
     count = 102;
     result = count_time_units_until(
         Date(6, 1, 30),    // target:   Jun 01, '30
-        Date(6, 5, 30),    // now date: Jun 05, '30 
+        Date(6, 5, 30),    // now date: Jun 05, '30
         Time(15, 30, 0),   // now time: 15:30:00
         TimeCountUnit::Hours,
         TimeCountDirection::Behind,
@@ -719,7 +719,7 @@ void test_count_time_units_until() {
 
     TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // Overflow
     TEST_ASSERT_EQUAL(131, count);  // unmodified
-                                 
+
     count = 132;
     // Hours
     result = count_time_units_until(then, now_d, now_t,
@@ -727,7 +727,7 @@ void test_count_time_units_until() {
 
     TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // Overflow
     TEST_ASSERT_EQUAL(132, count);  // unmodified
-                                 
+
     count = 133;
     // Weeks
     result = count_time_units_until(then, now_d, now_t,
