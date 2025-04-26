@@ -143,11 +143,16 @@ struct UIState {
     }
 };
 
-/** The current UI state, used by the UI logic functions. */
+/** The current UI state, used by the UI logic and draw functions. */
 static UIState ui_state;
-// TODO: Change how ui_state is passed around in the draw functions??
-// Why can't it just use the global variable?
-void ui_draw(UIState* state);
+
+/**
+ * The UI state used in the last ui_draw() call. Used in the UI draw
+ * functions to determine what needs to be redrawn.
+ */
+static UIState last_state;
+
+void ui_draw();
 
 /** == UI LOGIC Functions == */
 
@@ -170,7 +175,11 @@ void ui_logic_fieldedit_field_mod(btn_helper btn, uint8_t repeats);
 void ui_logic_fieldedit_save();
 
 
+
 // Public function
+/**
+ * Processes UI logic for button presses and repeat presses.
+ */
 void ui_btn_input(btn_helper btn, uint8_t repeats) {
     if (btn.bits() == 0) {
         /** No button input: No computation necessary. */
@@ -198,11 +207,14 @@ void ui_btn_input(btn_helper btn, uint8_t repeats) {
      * Now send things over to the DRAW department,
      * which will determine for itself if a redraw is necessary.
      */
-    ui_draw(&ui_state);
+    ui_draw();
 }
 
 
 // Public function
+/**
+ * Processes UI logic following a Pulse-Per-Second event from the RTC.
+ */
 void ui_pps() {
     // If we're looking at the RTC time, then redraw.
     if (ui_state.layer != Layer::Blank &&
@@ -226,8 +238,12 @@ void ui_pps() {
         }
     }
 
-    ui_draw(&ui_state);
+    /**
+     * Redraw if necessary.
+     */
+    ui_draw();
 }
+
 
 /**
  * These "transition" function are what CAUSE the active layer
@@ -516,13 +532,11 @@ void ui_logic_fieldedit_save() {
 
 /** == UI DRAWING Functions == */
 
-void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state);
-void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state);
+void ui_draw_layer_mainmenu();
+void ui_draw_layer_fieldedit();
 
-void ui_draw(UIState* state) {
-    static UIState last_state;
-
-    if (!(state->needs_redraw(last_state))) {
+void ui_draw() {
+    if (!(ui_state.needs_redraw(last_state))) {
         // Nothing important has changed; no redrawing needed!
         return;
     }
@@ -535,29 +549,29 @@ void ui_draw(UIState* state) {
      */
     PORTA |= (1 << PA2);
 
-    if (state->layer != last_state.layer) {
+    if (ui_state.layer != last_state.layer) {
         ssd1306_clearScreen();
     }
 
     /** Call the specific draw function for the layer we're on. */
-    switch (state->layer) {
+    switch (ui_state.layer) {
         case Layer::Blank: {
             break;
         }
         case Layer::MainMenu: {
-            ui_draw_layer_mainmenu(state, last_state);
+            ui_draw_layer_mainmenu();
             break;
         }
         case Layer::FieldEdit: {
-            ui_draw_layer_fieldedit(state, last_state);
+            ui_draw_layer_fieldedit();
             break;
         }
     }
 
     /** Reset general-purpose redraw flag */
-    state->dirty = false;
+    ui_state.dirty = false;
 
-    last_state = *state;
+    last_state = ui_state;
 }
 
 /**
@@ -580,20 +594,20 @@ static char ui_strbuf[17];
 
 /** X-position of the arrows for each field when editing a Date */
 
-void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
-    bool page_changed = state->mm_page != last_state.mm_page ||
-                        state->layer != last_state.layer;
+void ui_draw_layer_mainmenu() {
+    bool page_changed = ui_state.mm_page != last_state.mm_page ||
+                        ui_state.layer != last_state.layer;
 
     // Clear the "information block" area
     if (page_changed) {
         ssd1306_clearBlock((6*10), 2, (12*10)-(6*10), 16);
     }
 
-    state->mm_scrollbar_top = 10 * static_cast<uint8_t>(state->mm_page);
+    ui_state.mm_scrollbar_top = 10 * static_cast<uint8_t>(ui_state.mm_page);
 
-    switch (state->mm_page) {
+    switch (ui_state.mm_page) {
         case MainMenuPage::TargetDate: {
-            state->mmpg_header_width = (6*17);
+            ui_state.mmpg_header_width = (6*17);
 
             // Draw the header
             ssd1306_printFixedN(0, 0, "* SET TARGET DATE", STYLE_BOLD, 0);
@@ -604,7 +618,7 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             break;
         }
         case MainMenuPage::RtcClock: {
-            state->mmpg_header_width = (6*15);
+            ui_state.mmpg_header_width = (6*15);
 
             // Draw the header
             if (page_changed) {
@@ -623,7 +637,7 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
             break;
         }
         case MainMenuPage::CountMode: {
-            state->mmpg_header_width = (6*16);
+            ui_state.mmpg_header_width = (6*16);
 
             // Draw the header
             ssd1306_printFixedN(0, 0, "* SET COUNT MODE", STYLE_BOLD, 0);
@@ -646,9 +660,9 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
     if (page_changed) {
         // Clear trailing end delta of header
         int8_t delta_header_width =
-            last_state.mmpg_header_width - state->mmpg_header_width;
+            last_state.mmpg_header_width - ui_state.mmpg_header_width;
         if (delta_header_width > 0) {
-            ssd1306_clearBlock(state->mmpg_header_width, 0,
+            ssd1306_clearBlock(ui_state.mmpg_header_width, 0,
                             delta_header_width, 8);
         }
 
@@ -656,8 +670,8 @@ void ui_draw_layer_mainmenu(UIState* state, const UIState& last_state) {
         ssd1306_clearBlock(124, (last_state.mm_scrollbar_top / 8), 3, 16);
         for (uint8_t x = 124; x < 127; x++) {
             // Draw scrollbar nub
-            ssd1306_drawVLine(x, state->mm_scrollbar_top,
-                                    state->mm_scrollbar_top + 11);
+            ssd1306_drawVLine(x, ui_state.mm_scrollbar_top,
+                                    ui_state.mm_scrollbar_top + 11);
         }
         // Draw scrollbar line
         ssd1306_drawVLine(127, 0, 31);
@@ -714,9 +728,9 @@ void draw_arrow(ArrowDirection direction, uint8_t x, uint8_t y) {
     }
 }
 
-void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
+void ui_draw_layer_fieldedit() {
     // Clear screen if the "horizontal page" changed
-    if (state->hz_page != last_state.hz_page) {
+    if (ui_state.hz_page != last_state.hz_page) {
         ssd1306_clearScreen();
     }
 
@@ -724,15 +738,15 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
     // By default, this is the indentation level of the Date text.
     uint8_t main_text_x = 0;
 
-    switch (state->mm_page) {
+    switch (ui_state.mm_page) {
         case MainMenuPage::TargetDate:
         case MainMenuPage::RtcClock: {
-            if (state->hz_page == LeftOrRight::Left) {  // Left page: Date
+            if (ui_state.hz_page == LeftOrRight::Left) {  // Left page: Date
                 // date
-                state->fe_arrow_left = fe_date_arrow_pos[state->field_index];
+                ui_state.fe_arrow_left = fe_date_arrow_pos[ui_state.field_index];
 
                 // "mmm DD 'YY" -> 11 chars w/term
-                if (state->mm_page == MainMenuPage::TargetDate) {
+                if (ui_state.mm_page == MainMenuPage::TargetDate) {
                     // We're editing the target date, so show that.
                     generate_date_string(ui_strbuf, running_settings.target_date);
                 } else {
@@ -741,7 +755,7 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
                 }
             } else {  // Right page: Time
                 // time
-                state->fe_arrow_left = fe_time_arrow_pos[state->field_index - 3];
+                ui_state.fe_arrow_left = fe_time_arrow_pos[ui_state.field_index - 3];
 
                 // "HH:MM:SS" -> 9 chars w/term
                 generate_time_string(ui_strbuf, running_time);
@@ -750,19 +764,19 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
             break;
         }
         case MainMenuPage::CountMode: {
-            if (state->hz_page == LeftOrRight::Left) {  // Left page: Count Unit
+            if (ui_state.hz_page == LeftOrRight::Left) {  // Left page: Count Unit
                 uint8_t field_val = static_cast<uint8_t>
                                     (running_settings.count_unit);
                 memcpy_P(ui_strbuf, COUNT_UNIT_LABELS_P + (field_val * 5), 5);
                 main_text_x = 24;
-                state->fe_arrow_left = 46;
+                ui_state.fe_arrow_left = 46;
                 ui_strbuf[5] = '\0';  // terminating character
             } else {  // Right page: Count Direction
                 uint8_t field_val = static_cast<uint8_t>
                                     (running_settings.count_direction);
                 memcpy_P(ui_strbuf, COUNT_DIRECTION_LABELS_P + (field_val * 6), 6);
                 main_text_x = 42;
-                state->fe_arrow_left = 72;
+                ui_state.fe_arrow_left = 72;
                 ui_strbuf[6] = '\0';  // terminating character
             }
             break;
@@ -773,24 +787,24 @@ void ui_draw_layer_fieldedit(UIState* state, const UIState& last_state) {
     ssd1306_printFixedN(main_text_x, 8, ui_strbuf, STYLE_NORMAL, 1);
 
     /** Redraw arrows if they moved, or if we just entered FieldEdit layer */
-    if (state->fe_arrow_left != last_state.fe_arrow_left ||
-            state->layer != last_state.layer) {
+    if (ui_state.fe_arrow_left != last_state.fe_arrow_left ||
+            ui_state.layer != last_state.layer) {
         /** Clear arrows at the previous location */
         ssd1306_clearBlock(last_state.fe_arrow_left, 0, 9, 8);
         ssd1306_clearBlock(last_state.fe_arrow_left, 3, 9, 8);
 
         /** Draw ellipses to show there's more fields to the left/right */
-        if (state->mm_page != MainMenuPage::TargetDate) {
+        if (ui_state.mm_page != MainMenuPage::TargetDate) {
             uint8_t ellipses_x = 0;
-            if (state->hz_page == LeftOrRight::Left) {
+            if (ui_state.hz_page == LeftOrRight::Left) {
                 ellipses_x = 110;
             }
             ssd1306_printFixedN(ellipses_x, 24, "...", STYLE_NORMAL, 0);
         }
 
         /** Draw arrows at the new location */
-        draw_arrow(ArrowDirection::Up, state->fe_arrow_left, 0);
-        draw_arrow(ArrowDirection::Down, state->fe_arrow_left, 24);
+        draw_arrow(ArrowDirection::Up, ui_state.fe_arrow_left, 0);
+        draw_arrow(ArrowDirection::Down, ui_state.fe_arrow_left, 24);
     }
 }
 

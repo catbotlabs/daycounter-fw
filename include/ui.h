@@ -15,20 +15,11 @@
 #include <ssd1306.h>
 #include "buttons.h"
 
-// TODO: document
-
 /**
- * Tell the UI that a PPS tick has received from RTC
- * 
- * This may cause a redraw.
- */
-void ui_pps();
-
-/**
- * Tell the UI that the given buttons have been pressed.
- * The UI will then perform logic, such as editing the
- * running_settings or running_date/time objects, or saving
- * those objects to nonvolatile storage.
+ * Processes UI logic for button presses and repeat presses.
+ * The UI logic may involve editing the running_settings or
+ * running_date/time objects, and saving these objects to
+ * nonvolatile storage.
  * 
  * The UI will redraw if necessary.
  * 
@@ -40,5 +31,12 @@ void ui_pps();
  * If 0, then this is not a repeat press.
  */
 void ui_btn_input(btn_helper btn, uint8_t repeats);
+
+/**
+ * Tell the UI that a PPS tick has been received from the RTC.
+ * 
+ * The UI will redraw if necessary.
+ */
+void ui_pps();
 
 #endif  // INCLUDE_UI_H_
