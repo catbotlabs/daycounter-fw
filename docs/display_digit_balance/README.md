@@ -1,31 +1,66 @@
-## Display digit balancing
+# Display digit balancing
 
-Each digit on the numeric display needs to be shown for an equal length of time so each digit has the same brightness. These oscilloscope screenshots show how long each digit sink is active.
-
-The circuit is running the main loop, continually running the display_glyphs_oe function. The glyphs are set by the day delta "888".
-
-| Oscillopscope channel | Net                              |
-| --------------------- | -------------------------------- |
-| CH1                   | OE (3.3V GPIO)                   |
-| CH2                   | DG0 (3.3V GPIO)                  |
-| CH3                   | DG1 (5V shift register output)   |
-| CH4                   | DG2 (digit sink transistor base) |
+Each digit on the numeric display needs to be shown for an equal length of time so each digit has the same brightness.
 
 To measure how long each digit is shown, we measure from when OE goes low for that digit to when when OE goes HIGH.
 
-DG0 length: 14.1us
-DG1 length: 14.1us
-DG2 length: 14.1us
+### Oscilloscope nets
 
+| Oscilloscope channel | Net                              |
+| -------------------- | -------------------------------- |
+| CH1                  | OE (3.3V GPIO)                   |
+| CH2                  | DG0 (3.3V GPIO)                  |
+| CH3                  | DG1 (5V shift register output)   |
+| CH4                  | DG2 (digit sink transistor base) |
 
-### DG0 (ones place)
+### Test conditions
 
-![Oscilloscope screen measuring DG0 length](DG0.png)
+The program is running the main loop.
 
-### DG1 (tens place)
+```c++
+do {
+    display_glyphs_oe(glyphs);
+} while (busy_flags == 0x00);
+```
 
-![Oscilloscope screen measuring DG1 length](DG1.png)
+Glyphs are set to "888".
 
-### DG2 (hundreds place)
+## Pre-balance results
 
-![Oscilloscope screen measuring DG2 length](DG2.png)
+These are the oscilloscope results **without** the NOP call delays added to the ones and tens places in `display_glyphs_oe`.
+
+* DG0 length: 12.6us
+* DG1 length: 12.9us
+* DG2 length: 14.1us
+
+#### DG0 (ones place)
+
+![Oscilloscope screen showing DG0 length is 12.6us](pre_DG0.png)
+
+#### DG1 (tens place)
+
+![Oscilloscope screen showing DG1 length is 12.9us](pre_DG1.png)
+
+#### DG2 (hundreds place)
+
+![Oscilloscope screen showing DG2 length is 14.1us](pre_DG2.png)
+
+## Post-balance results
+
+These are the oscilloscope results **with** 12 NOPs added to ones place and 10 NOPs added to the tens place in `display_glyphs_oe`.
+
+* DG0 length: 14.1us
+* DG1 length: 14.1us
+* DG2 length: 14.1us
+
+#### DG0 (ones place)
+
+![Oscilloscope screen showing DG0 length is 14.1us](post_DG0.png)
+
+#### DG1 (tens place)
+
+![Oscilloscope screen showing DG1 length is 14.1us](post_DG1.png)
+
+#### DG2 (hundreds place)
+
+![Oscilloscope screen showing DG2 length is 14.1us](post_DG2.png)
