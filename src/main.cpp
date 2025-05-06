@@ -74,10 +74,11 @@ ISR(INT0_vect) {
 }
 
 /**
- * Handles I2C bus failure, which would normally cause a lock-up.
+ * Called when the code times out (locks up) on the
+ * initial test I2C transaction.
  * 
  * Since we are relying on the pullup resistors in the SSD1306 module,
- * this could be caused by an open connection with the OLED.
+ * this could be caused by poor connection with the OLED module.
  */
 ISR(WATCHDOG_vect) {
     wdt_disable();
@@ -87,19 +88,22 @@ ISR(WATCHDOG_vect) {
     fatal_infinite_display_loop(PS("I2C bus failure! Check OLED wiring."));
 }
 
-void setup() {
-    /** TODO: determine if/whether interrupts (I-bit)
-     *  are set in this function. */
+// TODO: hold SET button on startup for some sort of self-test mode?
 
+
+/** 
+ * Initial startup routine
+ */
+void setup() {
     /** Disable watchdog in case of watchdog reset. */
     MCUSR &= ~(1 << WDRF);
     wdt_disable();
 
     /**
      * IF PA2 is HIGH:
-     *   UART is plugged in, set oe_mode 0.
+     *   UART is plugged in, set oe_mode to 0.
      * IF PA2 is LOW:
-     *   Standard configuration. Use OE to eliminate ghosting, set oe_mode 1.
+     *   Standard configuration. Use OE to eliminate ghosting, set oe_mode to 1.
      */
     oe_mode = !((PINA & (1 << PA2)) >> PA2);
     if (oe_mode == OEMODE_UART) {
@@ -186,6 +190,9 @@ void setup() {
     sei();  // Enable interrupts!
 }
 
+/**
+ * Post-startup loop routine
+ */
 inline void loop() {
     /** Focus on drawing to the matrix-encoded digital display */
     do {
@@ -269,8 +276,8 @@ inline void loop() {
 }
 
 int main() {
-    // TODO: we don't need to call them setup() and loop().
     setup();
+
     for (;;) {
         loop();
     }

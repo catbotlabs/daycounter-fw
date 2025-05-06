@@ -40,7 +40,7 @@ As opposed to using simulation / emulation methods, we decided to achieved this 
 
 The unit tests are contained in the `test/` directory.
 
-**To run the unit tests, you must use the `test_native` PlatformIO environment.**
+**To run the unit tests, you must specify a different PlatformIO environment,** because the default environment would build for the target AVR microcontroller.
 
 To build and run all standard unit tests:
 
@@ -60,14 +60,15 @@ pio test -e test_native_max
 
 #### External dependencies
 
-* `ssd1306` (cbl-winston fork)
-* `tiny-i2c`
+* [`ssd1306`](https://github.com/cbl-winston/ssd1306) (CatBotLabs fork): Ultra lightweight SSD1306 driver library. The fork lets us disable unused features, saving valuable program space.
+
+* [`tiny-i2c`](https://github.com/technoblogy/tiny-i2c): Ultra lightweight AVR I2C implementation.
 
 #### Private library compontents (lib/)
 
-* `datetime/`
-* `display/`
-* `util/`
+* `datetime/`: Defines Date and Time structures, date math algorithms, string formatting, and RTC register data conversion.
+* `display/`: Defines the numeric display character constants and the integer / display character conversion function.
+* `util/`: Uncategorized general-purpose functions
 
 ### GPIO usage
 
@@ -133,10 +134,14 @@ If both DG0 and DG1 are low, then DG2 (hundreds' place) is sunk.
 pullup resistor must be set on PB2. The ATtiny reads the time from the RTC upon startup,
 then keeps track of time using only the PPS signal.
 
+### Code standards
 
+The C++ code largely follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Code in the `src/`, `include/`, `lib/`, and `test/` directories is linted using [cpplint](https://github.com/cpplint/cpplint). See  the `tools/lint.sh` helper script.
 
 ### License
 
-This firmware is a free and open source project provided under the terms of the MIT License. Full license text in the LICENSE file.
+This firmware and its source code is free and open source, under the terms of the MIT License in the included LICENSE file.
+
+Note that the `src/uart.cpp` file has some embedded BSD 2-Clause License code from [attiny13-software-uart-library](https://github.com/lpodkalicki/attiny13-software-uart-library) by lpodkalicki.
 
 Copyright (c) 2025, Winston Malinowski

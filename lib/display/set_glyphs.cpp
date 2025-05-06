@@ -1,6 +1,6 @@
 /**
  * @file lib/display/set_glyphs.cpp
- * @brief Implementation of set_glyphs function
+ * @brief Implementation of integer to display character conversion function.
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 

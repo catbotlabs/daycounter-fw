@@ -25,7 +25,7 @@
 const uint8_t MAINMENU_TIMEOUT_S = 15;
 
 /** Switch to "fast repeat" mode on the given Nth repeat. */
-const uint8_t FAST_REPEAT_BUILDUP = 5;
+const uint8_t FAST_REPEAT_BUILDUP = 10;
 
 /** When in "fast repeat" mode, make this the minimum increment */
 const uint8_t FAST_REPEAT_INCREMENTS = 5;
