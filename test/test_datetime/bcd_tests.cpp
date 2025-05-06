@@ -57,8 +57,9 @@ void test_int_from_bcd() {
  * entries in BCD_0_to_99.
  */
 void test_bcd_from_int() {
+    uint8_t as_bcd;
     for (int i = 0; i < 100; i++) {
-        uint8_t as_bcd = bcd_from_int(i);
+        as_bcd = bcd_from_int(i);
         TEST_ASSERT_EQUAL(BCD_0_to_99[i], as_bcd);
     }
 }

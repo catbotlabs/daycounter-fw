@@ -23,7 +23,7 @@
  */
 extern volatile char swuart_rx_char;
 
-/** Helper type for strings stored in program space. */
+/** Helper type to mark strings stored in program space. */
 class ProgmemString;
 
 /** Casts a C-string to a pointer-to-ProgmemString */
@@ -51,22 +51,14 @@ void swuart_write(char out);
 /** Write C-string over software UART. */
 void swuart_write(const char* out);
 
-/** Write string stored in program space over software UART. */
-void swuart_write(const ProgmemString* pstr);
-
+/** Write program-space string and newline over software UART. */
+void swuart_writeln(const ProgmemString* pstr);
 
 /**
  * Print a signed 16-bit integer as base 10 text to
  * software UART.
  */
 void swuart_print_int(int16_t num);
-
-/**
- * Write CR-LF to software UART.
- */
-__attribute__((always_inline)) inline void swuart_newline() {
-    swuart_write("\r\n");
-}
 
 /**
  * Block wrapper that calls swuart_mode_tx() before the block

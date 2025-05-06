@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "--- TODO list:"
-grep --color=auto -r -n TODO src/ include/ lib/ test/ README.md
+grep --color=auto -r -n TODO src/ include/ lib/ test/ README.md platformio.ini
 echo "--- end TODO list ---"
 
 echo "--- cpplint issues:"

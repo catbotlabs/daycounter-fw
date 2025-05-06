@@ -48,14 +48,6 @@ void test_is_leap_year() {
 }
 
 /**
- * Tests the default value of the Date object.
- */
-void test_date_default_value() {
-    Date date;  // Default value should be January 1, XX00.
-    TEST_ASSERT_EQUAL__Date(Date(1, 1, 0), date);
-}
-
-/**
  * Tests the const and non-const Date field accessors,
  * which are the Date::day, Date::month, and Date::year functions.
  */
@@ -97,67 +89,67 @@ void test_date_accessors() {
  * the next century.
  */
 void test_date_is_before() {
-    Date ref;
+    Date other;
 
-    ref = Date(1, 1, 0);  // January 1, XX00
+    other = Date(1, 1, 0);  // January 1, XX00
 
     /** These dates should NOT be counted as before January 1, XX00 */
-    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 0), ref));   // equal date
-    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 1), ref));   // year after
-    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 49), ref));  // 49 years after
-    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 50), ref));  // 50 years after
+    TEST_ASSERT_FALSE(Date(1, 1, 0).is_before(other));   // equal date
+    TEST_ASSERT_FALSE(Date(1, 1, 1).is_before(other));   // year after
+    TEST_ASSERT_FALSE(Date(1, 1, 49).is_before(other));  // 49 years after
+    TEST_ASSERT_FALSE(Date(1, 1, 50).is_before(other));  // 50 years after
 
     /** These dates SHOULD be counted as before January 1, XX00 */
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 51), ref));  // wrap, 49 before
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 52), ref));  // 48 before
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 95), ref));  // 5 years before
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 99), ref));  // year before
+    TEST_ASSERT_TRUE(Date(1, 1, 51).is_before(other));  // wrap, 49 before
+    TEST_ASSERT_TRUE(Date(1, 1, 52).is_before(other));  // 48 before
+    TEST_ASSERT_TRUE(Date(1, 1, 95).is_before(other));  // 5 years before
+    TEST_ASSERT_TRUE(Date(1, 1, 99).is_before(other));  // year before
 
 
-    ref = Date(7, 20, 30);  // July 20, XX30
+    other = Date(7, 20, 30);  // July 20, XX30
 
-    // Dates BEFORE ref
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 23, 30), ref));  // earlier month
-    TEST_ASSERT_TRUE(Date::is_before(Date(7, 1, 30), ref));   // same month
-    TEST_ASSERT_TRUE(Date::is_before(Date(7, 19, 30), ref));  // same month
+    // Dates BEFORE other
+    TEST_ASSERT_TRUE(Date(1, 23, 30).is_before(other));  // earlier month
+    TEST_ASSERT_TRUE(Date(7, 1, 30).is_before(other));   // same month
+    TEST_ASSERT_TRUE(Date(7, 19, 30).is_before(other));  // same month
 
-    // EQUAL with ref
-    TEST_ASSERT_FALSE(Date::is_before(Date(7, 20, 30), ref));
+    // EQUAL with other
+    TEST_ASSERT_FALSE(Date(7, 20, 30).is_before(other));
 
-    // Dates AFTER ref
-    TEST_ASSERT_FALSE(Date::is_before(Date(7, 21, 30), ref));  // same month
-    TEST_ASSERT_FALSE(Date::is_before(Date(7, 31, 30), ref));  // same month
-    TEST_ASSERT_FALSE(Date::is_before(Date(8, 5, 30), ref));   // next month
-    TEST_ASSERT_FALSE(Date::is_before(Date(1, 1, 31), ref));   // next year
+    // Dates AFTER other
+    TEST_ASSERT_FALSE(Date(7, 21, 30).is_before(other));  // same month
+    TEST_ASSERT_FALSE(Date(7, 31, 30).is_before(other));  // same month
+    TEST_ASSERT_FALSE(Date(8, 5, 30).is_before(other));   // next month
+    TEST_ASSERT_FALSE(Date(1, 1, 31).is_before(other));   // next year
 
     // Year wrap cutoff point: 50 years
-    TEST_ASSERT_FALSE(Date::is_before(Date(12, 1, 80), ref));  // 50 years after
-    TEST_ASSERT_TRUE(Date::is_before(Date(1, 1, 81), ref));   // 49 years before
+    TEST_ASSERT_FALSE(Date(12, 1, 80).is_before(other));  // 50 years after
+    TEST_ASSERT_TRUE(Date(1, 1, 81).is_before(other));   // 49 years before
 
 
     // A date in the middle of the century.
-    ref = Date(3, 14, 50);  // March 14, XX50
+    other = Date(3, 14, 50);  // March 14, XX50
 
     // +/- 1 year
-    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 51), ref));
-    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 49), ref));
+    TEST_ASSERT_FALSE(Date(3, 14, 51).is_before(other));
+    TEST_ASSERT_TRUE(Date(3, 14, 49).is_before(other));
 
     // +/- 30 years
-    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 80), ref));
-    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 20), ref));
+    TEST_ASSERT_FALSE(Date(3, 14, 80).is_before(other));
+    TEST_ASSERT_TRUE(Date(3, 14, 20).is_before(other));
 
     // +/- 49 years
-    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 99), ref));
-    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 1), ref));
+    TEST_ASSERT_FALSE(Date(3, 14, 99).is_before(other));
+    TEST_ASSERT_TRUE(Date(3, 14, 1).is_before(other));
 
     // +/- 50 years
     // delta == 50 years: no wrap.
-    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 0), ref));
+    TEST_ASSERT_TRUE(Date(3, 14, 0).is_before(other));
 
     // +/- 55 years -> -/+ 45 years
     // delta > 50 years: yes wrap.
-    TEST_ASSERT_FALSE(Date::is_before(Date(3, 14, 95), ref));
-    TEST_ASSERT_TRUE(Date::is_before(Date(3, 14, 5), ref));
+    TEST_ASSERT_FALSE(Date(3, 14, 95).is_before(other));
+    TEST_ASSERT_TRUE(Date(3, 14, 5).is_before(other));
 }
 
 

@@ -92,7 +92,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /// It's assumed that interrupts are disabled within this context.
-__attribute__((always_inline)) inline uint8_t rx_byte_sw_uart() {
+uint8_t rx_byte_sw_uart() {
     uint8_t rxbyte;
     asm volatile(
         " ldi r18, %[rxdelay2] \n\t" // 1.5 bit delay
@@ -219,12 +219,17 @@ void swuart_write(const char* out) {
     }
 }
 
-// write until terminating character, strings stored in program space.
-void swuart_write(const ProgmemString* pstr) {
+/**
+ * Write until terminating character for strings stored in program space.
+ * Writes CR-LF after the given string.
+ */
+void swuart_writeln(const ProgmemString* pstr) {
     PGM_P pgm_ptr = reinterpret_cast<PGM_P>(pstr);
     while (char out = pgm_read_byte(pgm_ptr++)) {
         tx_byte_sw_uart(out);
     }
+    tx_byte_sw_uart('\r');
+    tx_byte_sw_uart('\n');
 }
 
 

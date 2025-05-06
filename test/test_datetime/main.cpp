@@ -18,6 +18,41 @@
 #include "time_tests.h"
 #include "str_fmt_tests.h"
 
+/** == General-purpose function tests == */
+
+/**
+ * Test the to_ascending_df function, which
+ * remaps a StdDateField enum to a AscDateField enum.
+ */
+void test_to_ascending_df() {
+    /** to_ascending_df simply remaps these three enums: */
+    TEST_ASSERT_EQUAL(AscDateField::Day,
+                      to_ascending_df(StdDateField::Day));
+
+    TEST_ASSERT_EQUAL(AscDateField::Month,
+                      to_ascending_df(StdDateField::Month));
+
+    TEST_ASSERT_EQUAL(AscDateField::Year,
+                      to_ascending_df(StdDateField::Year));
+}
+
+/**
+ * Test the to_ascending_tf function, which
+ * remaps a StdTimeField enum to a AscTimeField enum.
+ */
+void test_to_ascending_tf() {
+    /** to_ascending_tf simply remaps these three enums: */
+    TEST_ASSERT_EQUAL(AscTimeField::Second,
+                      to_ascending_tf(StdTimeField::Second));
+
+    TEST_ASSERT_EQUAL(AscTimeField::Minute,
+                      to_ascending_tf(StdTimeField::Minute));
+
+    TEST_ASSERT_EQUAL(AscTimeField::Hour,
+                      to_ascending_tf(StdTimeField::Hour));
+}
+
+
 /** == Tests with Date and Time together == */
 
 /**
@@ -196,8 +231,8 @@ void test_update_registers_from_datetime() {
  * This function tests each carry and checks the return values.
  */
 void test_tick_datetime_one_second() {
-    Date date;  // Default: January 1, XX00
-    Time time;  // Default: 00:00:00
+    Date date(1, 1, 0);  // Default: January 1, XX00
+    Time time(0, 0, 0);  // Default: 00:00:00
     uint8_t ret = 0;  // Return value of tick_datetime_one_second.
     const char RVM[] = "Return value fail.";  // Return value message
 
@@ -413,10 +448,345 @@ void test_tick_datetime_brute_four_hundred_million() {
     TEST_ASSERT_EQUAL__Time(Time(6, 8, 13), time);
 }
 
+/**
+ * Tests the count_time_units_until function,
+ * which is the general-purpose date/time counting
+ * function.
+ * It can count forwards/backwards, in days/weeks/hours,
+ * and it does bounds checking for if the counting
+ * is backwards / exceeds 999.
+ */
+void test_count_time_units_until() {
+    TimeCountResult result;
+    uint16_t count;
+
+    /** Test case: AHEAD/BEHIND OK result, D/W */
+    // Days, AHEAD
+    count = 11;
+    result = count_time_units_until(
+        Date(8, 26, 25),  // target:   Aug 26, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(16, 0, 0),   // now time: 16:00:00
+        TimeCountUnit::Days,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(144, count);  // 144 day delta
+
+    // Days, BEHIND
+    count = 22;
+    result = count_time_units_until(
+        Date(4, 4, 25),    // target:   Apr 04, '25
+        Date(8, 26, 25),   // now date: Aug 26, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::Days,
+        TimeCountDirection::Behind,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(144, count);  // 144 day delta
+
+    // Weeks, AHEAD
+    count = 33;
+    result = count_time_units_until(
+        Date(8, 26, 25),  // target:   Aug 26, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(16, 0, 0),   // now time: 16:00:00
+        TimeCountUnit::Weeks,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(20, count);  // 20 week delta
+
+    // Weeks, BEHIND
+    count = 44;
+    result = count_time_units_until(
+        Date(4, 4, 25),    // target:   Apr 04, '25
+        Date(8, 26, 25),   // now date: Aug 26, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::Weeks,
+        TimeCountDirection::Behind,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(20, count);  // 20 week delta
+
+    /** Test case: The Time component, AHEAD/BEHIND, Hours */
+    count = 101;
+    result = count_time_units_until(
+        Date(6, 5, 30),    // target:   Jun 05, '30
+        Date(6, 1, 30),    // now date: Jun 01, '30
+        Time(15, 30, 0),   // now time: 15:30:00
+        TimeCountUnit::Hours,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(81, count);  // 81 hour delta
+
+    count = 102;
+    result = count_time_units_until(
+        Date(6, 1, 30),    // target:   Jun 01, '30
+        Date(6, 5, 30),    // now date: Jun 05, '30
+        Time(15, 30, 0),   // now time: 15:30:00
+        TimeCountUnit::Hours,
+        TimeCountDirection::Behind,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(111, count);  // 111 hour delta
+
+    /** Test case: AHEAD/BEHIND OK result, count=0, D/H/W */
+    {
+    Date same_date(4, 24, 25);
+
+    count = 111;
+    // Days: Ahead
+    result = count_time_units_until(same_date, same_date,
+        Time(18, 0, 0),
+        TimeCountUnit::Days, TimeCountDirection::Ahead, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);
+    TEST_ASSERT_EQUAL(0, count);
+
+    count = 112;
+    // Hours: Ahead
+    result = count_time_units_until(same_date, same_date,
+        Time(0, 59, 59),
+        TimeCountUnit::Hours, TimeCountDirection::Ahead, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);
+    TEST_ASSERT_EQUAL(0, count);
+
+    count = 113;
+    // Weeks: Ahead
+    result = count_time_units_until(same_date, same_date,
+        Time(18, 0, 0),
+        TimeCountUnit::Weeks, TimeCountDirection::Ahead, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);
+    TEST_ASSERT_EQUAL(0, count);
+
+    count = 114;
+    // Days: Behind
+    result = count_time_units_until(same_date, same_date,
+        Time(18, 0, 0),
+        TimeCountUnit::Days, TimeCountDirection::Behind, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);
+    TEST_ASSERT_EQUAL(0, count);
+
+    count = 115;
+    // Hours: Behind
+    result = count_time_units_until(same_date, same_date,
+        Time(0, 59, 59),
+        TimeCountUnit::Hours, TimeCountDirection::Behind, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);
+    TEST_ASSERT_EQUAL(0, count);
+
+    count = 116;
+    // Weeks: Behind
+    result = count_time_units_until(same_date, same_date,
+        Time(18, 0, 0),
+        TimeCountUnit::Weeks, TimeCountDirection::Behind, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);
+    TEST_ASSERT_EQUAL(0, count);
+    }
+
+    /** Test case: AHEAD/BEHIND NEGATIVE result */
+    // AHEAD
+    count = 33;      // reset count
+    result = count_time_units_until(
+        Date(4, 4, 25),    // target:   Apr 04, '25
+        Date(8, 26, 25),   // now date: Aug 26, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::Days,
+        TimeCountDirection::Ahead,
+        &count);
+
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Negative, result);  // NEGATIVE result
+    TEST_ASSERT_EQUAL(33, count);  // count should be unmodified.
+
+    // BEHIND
+    count = 44;
+    result = count_time_units_until(
+        Date(8, 26, 25),  // target:   Aug 26, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(16, 0, 0),   // now time: 16:00:00
+        TimeCountUnit::Days,
+        TimeCountDirection::Behind,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Negative, result);  // NEGATIVE result
+    TEST_ASSERT_EQUAL(44, count);  // count should be unmodified.
+
+    /** Test case: OVERFLOW result, D/H/W */
+    {
+    // Days, count = 999: OK
+    count = 55;
+    result = count_time_units_until(
+        Date(12, 29, 27),   // target:   Dec 29, '27
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(16, 0, 0),     // now time: 16:00:00
+        TimeCountUnit::Days,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(999, count);  // 999 day delta
+
+    // Days, day delta = 1000: OVERFLOW!
+    count = 55;
+    result = count_time_units_until(
+        Date(12, 30, 27),   // target:   Dec 30, '25
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(16, 0, 0),     // now time: 16:00:00
+        TimeCountUnit::Days,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(55, count);  // count should be unmodified
+
+    // Hours, count = 999: OK
+    count = 66;
+    result = count_time_units_until(
+        Date(5, 16, 25),    // target:   May 16, '25
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(9, 0, 0),     // now time: 09:00:00
+        TimeCountUnit::Hours,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(999, count);  // 999 hour delta
+
+    // Hours, hour delta = 1000: OVERFLOW!
+    count = 66;
+    result = count_time_units_until(
+        Date(5, 16, 25),    // target:   May 16, '25
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(8, 0, 0),     // now time: 08:00:00
+        TimeCountUnit::Hours,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(66, count);  // count should be unmodified.
+
+    // Weeks, count = 999: OK
+    count = 77;
+    result = count_time_units_until(
+        Date(6, 2, 44),    // target:   Jun 02, '44
+        Date(4, 4, 25),    // now date: Apr 04, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::Weeks,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(999, count);  // 999 week delta
+
+    // Weeks, week delta = 1000: OVERFLOW!
+    count = 77;
+    result = count_time_units_until(
+        Date(6, 3, 44),    // target:   Jun 03, '44
+        Date(4, 4, 25),     // now date: Apr 04, '25
+        Time(16, 0, 0),     // now time: 16:00:00
+        TimeCountUnit::Weeks,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(77, count);  // count should be unmodified.
+    }
+
+    /** Test case: 50 year max time delta overflow, D/H/W */
+    {
+    Date then(12, 31, 54);  // Dec 31, '54
+    Date now_d(1, 1, 4);    // Jan 01, '04
+    Time now_t(23, 59, 59);
+
+    count = 131;
+    // Days
+    result = count_time_units_until(then, now_d, now_t,
+        TimeCountUnit::Days, TimeCountDirection::Ahead, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // Overflow
+    TEST_ASSERT_EQUAL(131, count);  // unmodified
+
+    count = 132;
+    // Hours
+    result = count_time_units_until(then, now_d, now_t,
+        TimeCountUnit::Hours, TimeCountDirection::Ahead, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // Overflow
+    TEST_ASSERT_EQUAL(132, count);  // unmodified
+
+    count = 133;
+    // Weeks
+    result = count_time_units_until(then, now_d, now_t,
+        TimeCountUnit::Weeks, TimeCountDirection::Ahead, &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // Overflow
+    TEST_ASSERT_EQUAL(133, count);  // unmodified
+    }
+
+    /** Test case: "hour_count" 16-bit unsigned int overflow protection */
+    // day delta: ceil((2**16)/24) = 2731
+    // A day delta of 2731 days would set
+    // hour_count to 2731*24, which equals 65544, but this
+    // exceeds uint16_t bounds, so hour_count would wrap to around 8.
+    count = 88;
+    result = count_time_units_until(
+        Date(9, 25, 32),   // target:   Sep 25, '32
+        Date(4, 4, 25),    // now date: Apr 04, '25
+        Time(16, 0, 0),    // now time: 16:00:00
+        TimeCountUnit::Hours,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Overflow, result);  // OVERFLOW result
+    TEST_ASSERT_EQUAL(88, count);  // count should be unmodified.
+
+    /** Test case: The situation where day_count==0 and hours_delta<0. */
+    count = 99;
+    result = count_time_units_until(
+        Date(4, 4, 25),   // target:   Apr 04, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(1, 0, 0),    // now time: 01:00:00
+        TimeCountUnit::Hours,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::Negative, result);  // NEGATIVE result
+    TEST_ASSERT_EQUAL(99, count);  // count should be unmodified.
+
+    // but if hours_delta == 0, then result is OK and count is zero.
+    result = count_time_units_until(
+        Date(4, 4, 25),   // target:   Apr 04, '25
+        Date(4, 4, 25),   // now date: Apr 04, '25
+        Time(0, 59, 59),  // now time: 00:59:59
+        TimeCountUnit::Hours,
+        TimeCountDirection::Ahead,
+        &count);
+
+    TEST_ASSERT_EQUAL(TimeCountResult::OK, result);  // OK result
+    TEST_ASSERT_EQUAL(0, count);  // count is zero hours.
+}
+
 int main() {
     UNITY_BEGIN();
 
     /** General-purpose function tests */
+    RUN_TEST(test_to_ascending_df);
+    RUN_TEST(test_to_ascending_tf);
+
     /** From bcd_tests.cpp */
     RUN_TEST(test_int_from_bcd);
     RUN_TEST(test_bcd_from_int);
@@ -424,7 +794,6 @@ int main() {
     /** Date-specific tests */
     /** From date_tests.cpp */
     RUN_TEST(test_is_leap_year);
-    RUN_TEST(test_date_default_value);
     RUN_TEST(test_date_accessors);
     RUN_TEST(test_date_is_before);
     RUN_TEST(test_date_field);
@@ -434,7 +803,6 @@ int main() {
 
     /** Time-specific tests */
     /** From time_tests.cpp */
-    RUN_TEST(test_time_default_value);
     RUN_TEST(test_time_accessors);
     RUN_TEST(test_time_field);
     RUN_TEST(test_time_fields_min_value);
@@ -456,6 +824,7 @@ int main() {
 #ifdef DC_MAX_TESTING
     RUN_TEST(test_tick_datetime_brute_four_hundred_million);
 #endif
+    RUN_TEST(test_count_time_units_until);
 
     UNITY_END();
     return 0;

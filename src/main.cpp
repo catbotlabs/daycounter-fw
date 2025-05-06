@@ -1,25 +1,42 @@
 /**
  * @file src/main.cpp
- * @brief Main routine
+ * @brief Main routine for the CatBotLabs K001 Day Counter
  *
  * Part of the CatBotLabs K001 Day Counter firmware.
  *
  * Copyright (c) 2025, Winston Malinowski
- * This source code is provided under the terms of the MIT License.
- * (See the LICENSE file)
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the “Software”), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-#include <USIWire.h>
+
 #include <avr/wdt.h>
+#include <TinyI2CMaster.h>
 #include "globals.h"
-#include "rtc.h"
 #include "datetime.h"
+#include "rtc.h"
+#include "settings.h"
 #include "display.h"
 #include "glyphdefs.h"
 #include "buttons.h"
 #include "ui.h"
 #include "uart.h"
 #include "commands.h"
-#include "settings.h"
 
 /** globals.h definitions */
 Date running_date;
@@ -31,13 +48,16 @@ volatile uint8_t busy_flags = 0;
 /** Three-byte buffer for the digital display */
 static DisplayGlyphs glyphs;
 
+/** Number of repeat presses since button held */
+static uint8_t num_repeats;
+
 /**
- * Print an error message and display whatever is in @ref glyphs
+ * Print an error message and display the global `glyphs`
  * on the digital display in an infinite loop.
  */
 void fatal_infinite_display_loop(const ProgmemString* msg) {
-    swuart_write(PS("fatal: "));
-    swuart_write(msg);
+    swuart_writeln(PS("fatal:"));
+    swuart_writeln(msg);
     while (true) {
         display_glyphs_oe(glyphs);
     }
@@ -54,10 +74,11 @@ ISR(INT0_vect) {
 }
 
 /**
- * Handles I2C bus failure, which would normally cause a lock-up.
+ * Called when the code times out (locks up) on the
+ * initial test I2C transaction.
  * 
  * Since we are relying on the pullup resistors in the SSD1306 module,
- * this could be caused by an open connection with the OLED.
+ * this could be caused by poor connection with the OLED module.
  */
 ISR(WATCHDOG_vect) {
     wdt_disable();
@@ -67,26 +88,29 @@ ISR(WATCHDOG_vect) {
     fatal_infinite_display_loop(PS("I2C bus failure! Check OLED wiring."));
 }
 
-void setup() {
-    /** TODO: determine if/whether interrupts (I-bit)
-     *  are set in this function. */
+// TODO: hold SET button on startup for some sort of self-test mode?
 
+
+/** 
+ * Initial startup routine
+ */
+void setup() {
     /** Disable watchdog in case of watchdog reset. */
     MCUSR &= ~(1 << WDRF);
     wdt_disable();
 
     /**
      * IF PA2 is HIGH:
-     *   UART is plugged in, set oe_mode 0.
+     *   UART is plugged in, set oe_mode to 0.
      * IF PA2 is LOW:
-     *   Standard configuration. Use OE to eliminate ghosting, set oe_mode 1.
+     *   Standard configuration. Use OE to eliminate ghosting, set oe_mode to 1.
      */
     oe_mode = !((PINA & (1 << PA2)) >> PA2);
     if (oe_mode == OEMODE_UART) {
         setup_swuart();
         swuart_mode_tx();
-        swuart_write(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
-                       "built " __DATE__ ", " __TIME__ "\r\n"));
+        swuart_writeln(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
+                       "built " __DATE__ ", " __TIME__));
     } else if (oe_mode == OEMODE_OE) {
         DDRA |= (1 << PA2);   // OE pin: output
         PORTA |= (1 << PA2);  // OE pin: high (disable display)
@@ -96,27 +120,28 @@ void setup() {
     setup_display();
 
     /** Initialize I2C bus */
-    Wire.begin();
+    TinyI2C.init();
 
-    /** I2C bus test */
-    Wire.beginTransmission(0x3C);  // 0x3C = SSD1306 address
-    Wire.write(0xAE);              // DISPLAY OFF (typical startup command)
+
     sei();  // temporarily enable interrupts for this
     wdt_enable(WDTO_15MS);  // start watchdog ~15ms timer
     WDTCSR |= (1 << WDIE);  // enable Watchdog ISR to escape lock-up
 
     /** If I2C wiring is bad, this will lock up and trigger the watchdog. */
     /** See ISR(WATCHDOG_vect) */
-    bool oled_fail = Wire.endTransmission();
-    cli();
+    bool oled_fail = !TinyI2C.start(0x3C, 0);  // 0x3C = SSD1306 address
+    TinyI2C.write(0xAE);  // DISPLAY OFF (typical startup command)
+    TinyI2C.stop();
 
+    cli();
     wdt_disable();
+
     if (oled_fail) {
         glyphs[2] = DIGIT_GLYPHS[5];  // 'S'
         glyphs[1] = 0xb9;             // 'c'
         glyphs[0] = 0x50;             // 'r'
         fatal_infinite_display_loop(
-            PS("failed to communicate with OLED screen"));
+            PS("OLED comm fail"));
     }
 
     /** Enable button interrupts after I2C test */
@@ -134,38 +159,40 @@ void setup() {
 
     /** Setup RTC */
     switch (setup_rtc()) {
-      case RTCInitResult::FAIL:
+      case RTCInitResult::Fail:
         /** Failed to communicate with RTC */
         ssd1306_clearScreen();
         ssd1306_printFixedN(0, 20, "check RTC", STYLE_NORMAL, 1);
         glyphs[2] = 0x50;  // 'r'
         glyphs[1] = 0x79;  // 't'
         glyphs[0] = 0x58;  // 'c'
-        fatal_infinite_display_loop(PS("failed to communicate with RTC"));
+        fatal_infinite_display_loop(PS("RTC comm fail"));
         break;
-      case RTCInitResult::UNSET:
-        swuart_write(PS("info: RTC registers adjusted\r\n"));
+      case RTCInitResult::Unset:
+        swuart_writeln(PS("RTC unset"));  // RTC registers weren't set properly
         /** Time is unset! */
         break;
       case RTCInitResult::OK:
-        swuart_write(PS("info: RTC okay\r\n"));
+        break;  // RTC okay. No action necessary.
     }
 
     if (read_settings_checked(&running_settings)) {
-        swuart_write(PS("info: Settings invalid, reset to defaults.\r\n"));
-    } else {
-        swuart_write(PS("info: Settings okay\r\n"));
+        swuart_writeln(PS("settings reset"));
     }
 
     rtc_read_datetime(&running_date, &running_time);
-    set_glyphs(running_time.second(), glyphs);
+    busy_flags |= BF_RECOUNT;  // We'll need to recount/set glyphs.
 
+    swuart_writeln(PS("ready."));
     /** If oe_mode == OEMODE_UART, then ready RX mode on UART. */
     swuart_mode_rx();
 
     sei();  // Enable interrupts!
 }
 
+/**
+ * Post-startup loop routine
+ */
 inline void loop() {
     /** Focus on drawing to the matrix-encoded digital display */
     do {
@@ -178,10 +205,12 @@ inline void loop() {
     // Check & process each busy flag:
     if (flags & BF_PPS) {
         /** Pulse-per-second event received. */
-        tick_datetime_one_second(&running_date, &running_time);
+        uint8_t result = tick_datetime_one_second(&running_date, &running_time);
 
-        /** Show the seconds on the display */
-        set_glyphs(running_time.second(), glyphs);
+        /** Re-count at the top of the hour */
+        if (result >= 2) {
+            busy_flags |= BF_RECOUNT;
+        }
 
         ui_pps();
     }
@@ -194,7 +223,10 @@ inline void loop() {
         /** Debounce timer elapsed */
 
         // Update button repeats
-        post_debounce_update_repeats();
+        if (post_debounce_update_repeats()) {
+            // Pre-repeat just began, so reset our repeat counter.
+            num_repeats = 0;
+        }
 
         /** Get which buttons are pressed right now */
         uint8_t pressed_buttons = get_pressed_button_flags();
@@ -204,20 +236,48 @@ inline void loop() {
         /** These are the buttons that have been pressed since last debounce */
         uint8_t ev_pressed = pressed_buttons & ~last_pressed_buttons;
 
-        ui_btn_input(btn_helper(ev_pressed), false);
+        /** Process the press events in the UI code */
+        ui_btn_input(btn_helper(ev_pressed), 0);
 
         last_pressed_buttons = pressed_buttons;
     }
     if (flags & BF_BTN_REPEAT) {
         /** Button repeat timer triggered */
+        num_repeats++;
         uint8_t repeated_button = get_repeated_button_flag();
-        ui_btn_input(btn_helper(1 << repeated_button), true);
+
+        /** Process the repeat event in the UI code */
+        ui_btn_input(btn_helper(1 << repeated_button), num_repeats);
+    }
+    if (flags & BF_RECOUNT) {
+        uint16_t count;
+        TimeCountResult result = count_time_units_until(
+            running_settings.target_date,
+            running_date, running_time,
+            running_settings.count_unit, running_settings.count_direction,
+            &count);
+        switch (result) {
+            case TimeCountResult::OK: {
+                set_glyphs_0_to_999(count, glyphs);
+                break;
+            }
+            case TimeCountResult::Negative: {
+                glyphs[0] = glyphs[2] = 0x00;
+                glyphs[1] = GLYPH_DASH | 1;
+                break;
+            }
+            case TimeCountResult::Overflow: {
+                glyphs[0] = glyphs[1] = glyphs[2] = GLYPH_DASH;
+                glyphs[1] |= 1;
+                break;
+            }
+        }
     }
 }
 
 int main() {
-    // TODO: we don't need to call them setup() and loop().
     setup();
+
     for (;;) {
         loop();
     }

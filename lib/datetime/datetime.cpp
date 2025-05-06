@@ -6,19 +6,33 @@
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
  * Copyright (c) 2025, Winston Malinowski
- * This source code is provided under the terms of the MIT License.
- * (See the LICENSE file)
- *
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the “Software”), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 /** 
  * @details This DateTime code implements the following functions:
- *   - Reading DateTime object from raw RTC registers
- *   - Writing DateTime object to raw RTC registers
- *   - Incrementing a DateTime by 1 second, performing all carries. (for PPS)
- *   - Incrementing individual parameters of a DateTime or Date object
- *       by one or more, w/o carries but with proper clamping and/or wrapping.
- *   - Calculating the delta between the current time and a Date.
+ *   - Date/Time objects with functions to get min/max allowable field values.
+ *   - Reading Date/Time objects from raw RTC registers
+ *   - Writing Date/Time objects to raw RTC registers
+ *   - Incrementing Date/Time by 1 second, performing all carries. (for PPS)
+ *   - Calculating the delta between the current Date/Time and a Date.
  * 
  * This code is all abstract, as in, it does not interact with the MCU or RTC's
  * hardware directly. Thus, all the above functions are portable enough to
@@ -26,10 +40,10 @@
  */
 
 #include "datetime.h"
-#include <stdlib.h>  /** for abs() */
 
 /**
- * Increment the time by one second and perform all necessary carries.
+ * Increments the given Date/Time by one second,
+ * performing all necessary carries.
  * 
  * If any of the fields are out of bound,
  * then undefined behaviour will result!
@@ -44,14 +58,13 @@
  *   5:  +1 year   (months wrap)
  *   6:  years wraps from 99 to 0.
  * 
- * @note Fails to follow century leap year rules. All century years
- * are leap years according to this function.
+ * @note See Date::is_leap_year for leap year qualification.
  * 
  */
 uint8_t tick_datetime_one_second(Date* date, Time* time) {
     // Increment time by one, starting with seconds
     for (uint8_t i = 0; i < 3; i++) {
-        const AscendingTimeField field = static_cast<AscendingTimeField>(i);
+        const AscTimeField field = static_cast<AscTimeField>(i);
         uint8_t& field_value = time->field(field);
         field_value++;
         if (field_value <= time->field_max_value(field)) {
@@ -65,7 +78,7 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
 
     // Increment date by one, starting with day of month
     for (uint8_t i = 0; i < 3; i++) {
-        const AscendingDateField field = static_cast<AscendingDateField>(i);
+        const AscDateField field = static_cast<AscDateField>(i);
         uint8_t& field_value = date->field(field);
         field_value++;
         if (field_value <= date->field_max_value(field)) {
@@ -79,21 +92,21 @@ uint8_t tick_datetime_one_second(Date* date, Time* time) {
 
 
 /**
- * Returns true if the "now" date is before the "ref" date.
+ * Returns true this date is before the "other" date.
  */
-bool Date::is_before(const Date& now, const Date& ref) {
-    if (now.year() == ref.year()) {
+bool Date::is_before(const Date& other) const {
+    if (year() == other.year()) {
         // The year is the same, so compare the month.
-        if (now.month() == ref.month()) {
+        if (month() == other.month()) {
             // The month is the same, so compare the day.
-            return now.day() < ref.day();  // is the day before the ref?
+            return day() < other.day();  // is this day before the other?
         }
-        return now.month() < ref.month();  // is the month before the ref?
+        return month() < other.month();  // is this month before the other?
     }
 
     // Signed delta years:
-    int8_t delta_years = int8_t(ref.year()) - now.year();
-    if (abs(delta_years) > 50) {
+    int8_t delta_years = int8_t(other.year()) - year();
+    if (delta_years > 50 || delta_years < -50) {
         /**
          * If the distance (up or down) between the given year
          * and the ref year exceeds 50 years, then we treat the
@@ -103,22 +116,16 @@ bool Date::is_before(const Date& now, const Date& ref) {
          * the comparison since the years are now approaching ref
          * from the other direction.
          */
-        return now.year() > ref.year();  // Years wrap around century
+        return year() > other.year();  // Years wrap around century
     }
 
     // No wrapping, simple behavior:
-    return now.year() < ref.year();  // is the year before the ref?
+    return year() < other.year();  // is this year before the other?
 }
 
-
 /**
- * NOTE: set_glyph should have its out-of-bounds handling removed
- * so its more like set_glyphs_from_count.
- */
-
-
-/**
- * @brief Returns the number of days until the given date.
+ * @brief Returns the number of days from this date
+ * until the given target date.
  * 
  * @note Always assumes that the "target" date is ahead of
  * "this" date, so do not use this method to count backwards!
@@ -147,7 +154,7 @@ bool Date::is_before(const Date& now, const Date& ref) {
  * kind of like tick_datetime_one_second, to properly increment by one
  * day while wrapping.
  */
-uint16_t Date::count_days_until(const Date& target) {
+uint16_t Date::count_days_until(const Date& target) const {
     // Copy of "this" date, which will be incremented until target is reached.
     Date now = *this;
 
@@ -182,27 +189,83 @@ uint16_t Date::count_days_until(const Date& target) {
     return count + (target.day() - now.day());
 }
 
-
 /**
- * 
- * @param target: The date we are counting towards
- * @param now_d, now_t: Current date and time.
- * @param TimeUnits: Enum of whether we are counting in hours, days, or weeks.
- * @param count: Points to where the counted number will be stored.
- * 
- * @returns: 0 on success, count is between 0 and 999.
- *           1 if now is ahead of target (negative count),
- *           2 answer exceeds 999.
+ * Counts the number of time units (as specified) from the given
+ * Time and Date until the beginning of the first hour of the
+ * specified target date.
  */
-/*TimeUntilReturnValue count_time_units_until(const Date& target,
+TimeCountResult count_time_units_until(const Date& target,
         const Date& now_d, const Time& now_t,
-        uint8_t TimeUnits, uint16_t* count) {
-}*/
+        TimeCountUnit count_unit, TimeCountDirection direction,
+        uint16_t* count) {
+    /** Positive day delta between now and target dates */
+    uint16_t day_count;
+    /** How many hours the given Time adds or subtracts from the day count */
+    int8_t hours_delta = now_t.hour();
 
-/**
- * Remaining functionality to add:
- *   - Date delta In_Future/In_Past calculator  / Check if delta is within display bounds
- *   - Time delta calculator function
- *   - Date / Time specialty individual field increment/decrement functions
- */
+    if (direction == TimeCountDirection::Ahead) {
+        /** We are counting from "now" to "target" */
+        if (target.is_before(now_d)) {
+            /** Target is before now! Cannot count backwards. */
+            return TimeCountResult::Negative;
+        }
+        day_count = now_d.count_days_until(target);
+        hours_delta *= -1;
+    } else {  // BEHIND
+        /** We are counting from "target" to "now" */
+        if (now_d.is_before(target)) {
+            /** Now is before target! Cannot count backwards. */
+            return TimeCountResult::Negative;
+        }
+        day_count = target.count_days_until(now_d);
+    }
 
+    switch (count_unit) {
+        case TimeCountUnit::Days: {
+            if (day_count > 999) {
+                return TimeCountResult::Overflow;
+            }
+            *count = day_count;
+            return TimeCountResult::OK;
+        }
+        case TimeCountUnit::Weeks: {
+            // if day_count==6999, then week count is 999.
+            // if day_count==7000, then week count is 1000.
+            if (day_count > 6999) {
+                return TimeCountResult::Overflow;
+            }
+            *count = day_count / 7;
+            return TimeCountResult::OK;
+        }
+        default: {  // Hours
+            uint16_t hour_count;
+
+            // Enough days to have 1000 hours plus some margin.
+            const uint16_t HOUR_COUNT_MAX_DAYS = (1000 / 24) + 2;
+
+            /** Make sure we do not overflow hour_count. */
+            if (day_count > HOUR_COUNT_MAX_DAYS) {
+                return TimeCountResult::Overflow;
+            }
+            hour_count = day_count * 24;
+
+            if (hours_delta < 0 && uint8_t(-hours_delta) > hour_count) {
+                /**
+                 * The Dates are equal, and the current hour is past the
+                 * first hour of the day. The number of hours until the
+                 * beginning of the target date is negative.
+                 */
+                return TimeCountResult::Negative;
+            }
+
+            // Subtract the hours already past in today's time
+            hour_count += hours_delta;
+
+            if (hour_count > 999) {
+                return TimeCountResult::Overflow;
+            }
+            *count = hour_count;
+            return TimeCountResult::OK;
+        }
+    }
+}

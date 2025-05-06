@@ -20,9 +20,22 @@
  * Since some of the MCP7940N RTC's timekeeping registers store
  * configuration parameters in certain bits, some additional bit-masking
  * is necessary before passing the raw register data as the argument.
+ * 
+ * @param bcd: 2-digit packed BCD number from 0 to 99
+ * @returns The number as an integer
+ * 
+ * Algorithm based on "BCD2bin8" from ATMEL AVR204: BCD Arithmetics appnote
  */
 uint8_t int_from_bcd(uint8_t bcd) {
-    return 10 * (bcd >> 4) + (bcd & 15);
+    uint8_t result = bcd & 15;
+    while (true) {
+        bcd -= 16;
+        // Check if `bcd` wrapped around negative:
+        if (bcd > 0x99) {  // more testable than using half-carry
+            return result;
+        }
+        result += 10;
+    }
 }
 
 /**
@@ -32,22 +45,32 @@ uint8_t int_from_bcd(uint8_t bcd) {
  * configuration parameters in certain bits, some bit-masking may
  * be necessary before using the result to set the register data.
  * 
- * @param num the given number, which must be between 0 and 99.
+ * @param num: An integer from 0 to 99
+ * @returns The number as 2-digit packed BCD
+ * 
+ * Algorithm based on "bin2BCD8" from ATMEL AVR204: BCD Arithmetics appnote
  */
-uint8_t bcd_from_int(uint8_t num) {
-    return ((num / 10) << 4) | (num % 10);
+uint8_t bcd_from_int(int8_t num) {
+    uint8_t msd = 0;
+    while (num >= 10) {
+        num -= 10;
+        msd += 16;
+    }
+    // MSD is now properly set
+    // num is now the LSD
+    return num | msd;
 }
 
 /** 
  * Timekeeping register masks. The zeroes are on bits
- * that should not be used for timekeeping.
+ * that should not be touched by these functions.
  */
-#define TKMSK_RTCSEC  127  // RTCSEC: mask out Bit 7 (ST)
-#define TKMSK_RTCHOUR 63   // RTCHOUR: mask out Bit 6 (12/24)
-#define TKMSK_RTCMTH  31   // RTCMTH: mask out LPYR
+const uint8_t TKMSK_RTCSEC  = 127;  // RTCSEC: mask out Bit 7 (ST)
+const uint8_t TKMSK_RTCHOUR = 63;   // RTCHOUR: mask out Bit 6 (12/24)
+const uint8_t TKMSK_RTCMTH  = 31;   // RTCMTH: mask out LPYR
 
 /**
- * Sets all members of a DateTime object using
+ * Sets all members of Date/Time objects using
  * the buffered raw register data from the MCP7940N RTC.
  * 
  * @note It's assumed that we're using 24-hour time
@@ -75,6 +98,8 @@ void datetime_from_registers(Date* date, Time* time,
  * Date/Time objects are out-of-bounds, which won't happen in normal
  * operation, and, b) I'm pretty sure if you do write a 1 to them,
  * nothing would happen anyway.
+ * 
+ * No bounds checking! Date and Time fields must be within their bounds!
  */
 void update_registers_from_datetime(DateTimeRegisters* rg, const Date& date,
         const Time& time) {

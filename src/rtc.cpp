@@ -11,12 +11,10 @@
 
 #include "rtc.h"
 #include <util/delay.h>   // for _delay_us()
-#include <USIWire.h>
-#include <uart.h>
+#include <TinyI2CMaster.h>
 #include "datetime.h"
 
 const uint8_t RTC_ADDR = 0x6f;
-
 
 /// == RTC Register Definitions ==
 const uint8_t RTCSEC = 0x00;
@@ -40,19 +38,18 @@ const uint8_t OSCRUN = 5;
 const uint8_t SQWEN = 6;
 
 
-
 /**
  * Read the RTC's register at \c addr to \c data;
  * Returns 0 on success, 1 on failure.
  */
 bool rtc_read_byte(uint8_t addr, uint8_t* data) {
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(addr);
-    if (Wire.endTransmission()) {
+    TinyI2C.start(RTC_ADDR, 0);
+    TinyI2C.write(addr);
+    if (!TinyI2C.restart(RTC_ADDR, 1)) {
         return 1;
     }
-    Wire.requestFrom(RTC_ADDR, (uint8_t)1);
-    *data = Wire.read();
+    *data = TinyI2C.read();
+    TinyI2C.stop();
     return 0;
 }
 
@@ -61,10 +58,13 @@ bool rtc_read_byte(uint8_t addr, uint8_t* data) {
  * Returns 0 on success, 1 on failure.
  */
 bool rtc_write_byte(uint8_t addr, uint8_t data) {
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(addr);
-    Wire.write(data);
-    return Wire.endTransmission();
+    TinyI2C.start(RTC_ADDR, 0);
+    TinyI2C.write(addr);
+    if (!TinyI2C.write(data)) {
+        return true;
+    }
+    TinyI2C.stop();
+    return false;
 }
 
 
@@ -103,31 +103,31 @@ RTCInitResult setup_rtc() {
 
     /** RTCSEC: Make sure ST is set. */
     if (rtc_read_byte(RTCSEC, &reg)) {
-        return RTCInitResult::FAIL;
+        return RTCInitResult::Fail;
     }
     if (!(reg & (1 << ST))) {
         rtc_write_byte(RTCSEC, reg | (1 << ST));
-        result = RTCInitResult::UNSET;
+        result = RTCInitResult::Unset;
     }
 
     /** CONTROL: Make sure SQWEN is set. */
     // SQWEN is the only bit we want set in CONTROL
     const uint8_t wanted_control_reg = (1 << SQWEN);
     if (rtc_read_byte(CONTROL, &reg)) {
-        return RTCInitResult::FAIL;
+        return RTCInitResult::Fail;
     }
     if (reg != wanted_control_reg) {
         rtc_write_byte(CONTROL, wanted_control_reg);
-        result = RTCInitResult::UNSET;
+        result = RTCInitResult::Unset;
     }
 
     /** RTCWKDAY: Make sure VBATEN is set. */
     if (rtc_read_byte(RTCWKDAY, &reg)) {
-        return RTCInitResult::FAIL;
+        return RTCInitResult::Fail;
     }
     if (!(reg & (1 << VBATEN))) {
         rtc_write_byte(RTCWKDAY, reg | (1 << VBATEN));
-        result = RTCInitResult::UNSET;
+        result = RTCInitResult::Unset;
     }
 
     /** Return whether any of the registers were modified. */
@@ -142,19 +142,17 @@ RTCInitResult setup_rtc() {
  */
 bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
     /** Request to read 7 bytes starting at 0x00. */
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(0x00);  // start address to read from
-    if (Wire.endTransmission()) {
+    TinyI2C.start(RTC_ADDR, 0);
+    TinyI2C.write(0x00);  // start address to read from
+    if (!TinyI2C.restart(RTC_ADDR, 7)) {  // request to read 7 bytes
         return 1;
     }
 
-    // Request to read 7 bytes
-    Wire.requestFrom(RTC_ADDR, (uint8_t)7);
-
     // Put those bytes in the DateTimeRegisters object
     for (int i = 0; i < 7; i++) {
-        *(reinterpret_cast<uint8_t*>(rg) + i) = Wire.read();
+        *(reinterpret_cast<uint8_t*>(rg) + i) = TinyI2C.read();
     }
+    TinyI2C.stop();
     return 0;
 }
 
@@ -165,12 +163,19 @@ bool rtc_read_timekeeping_registers(DateTimeRegisters* rg) {
  * @returns 0 on success, 1 on failure.
  */
 bool rtc_write_timekeeping_registers(const DateTimeRegisters& rg) {
-    Wire.beginTransmission(RTC_ADDR);
-    Wire.write(0x00);  // 0x00 is the starting address we're writing to.
+    if (!TinyI2C.start(RTC_ADDR, 0)) {
+        return false;
+    }
+    TinyI2C.write(0x00);  // 0x00 is the starting address we're writing to.
 
     /** Send the register bytes to the RTC */
-    Wire.write(reinterpret_cast<const uint8_t*>(&rg), 7);
-    return Wire.endTransmission();
+    for (int i = 0; i < 7; i ++) {
+        if (!TinyI2C.write(reinterpret_cast<const uint8_t*>(&rg)[i])) {
+            return false;
+        }
+    }
+    TinyI2C.stop();
+    return true;
 }
 
 /**

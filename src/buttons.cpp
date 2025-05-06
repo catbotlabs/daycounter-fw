@@ -17,8 +17,8 @@
 /** Time from TCNT0=0 to TCNT0=141 is just over 18 ms */
 const uint8_t DEBOUNCE_TIMER_MATCH = 141;
 
-/** Time from TCNT1=0 to TCNT1=5078 is about 650 ms */
-const uint16_t PRE_REPEAT_TIMER_MATCH = 5078;
+/** Time from TCNT1=0 to TCNT1=5078 is about 500 ms */
+const uint16_t PRE_REPEAT_TIMER_MATCH = 3906;
 
 /** Time from TCNT1=0 to TCNT1=1000 is 128 ms */
 const uint16_t REPEAT_BUTTON_TIMER_MATCH = 1000;
@@ -50,7 +50,6 @@ const uint16_t BUTTON_ADC_THRESHOLD = 950;
  * the button repeat events.
  */
 static uint8_t repeat_pin;
-
 
 /**
     Explanation of how the Timers are being used:
@@ -84,7 +83,7 @@ Purpose: Button repeat events (A), initial pre-repeat delay (B)
 TCNT1 count: 0x0000 |########## A #################### B ##########| 0xFFFF
                        ->   ->  |  ->    ->   ->   ->  |
                           OCR1A: Repeat event        OCR1B: Pre-repeat timer
-                             (~128ms)                     (~650ms)
+                             (~128ms)                     (~500ms)
                                [CTC]                ISR clears TCNT1 on match.
 
 *
@@ -94,7 +93,7 @@ TCNT1 count: 0x0000 |########## A #################### B ##########| 0xFFFF
 *
 * Before the "repeat press" events begin, there is first an initial wait
 * through which a single button pin must be held. The wait must be long
-* enough so that repeat presses aren't triggered on accident (~650ms).
+* enough so that repeat presses aren't triggered on accident (~500ms).
 * This initial wait is called the "pre-repeat" timer.
 
 * When a debounced button is pressed, the pre-repeat timer begins.
@@ -220,7 +219,7 @@ void stop_repeat_timer() {
 
 /**
  * Button repeat timer (OCR1A) repeatedly fires every 128ms after
- * the "pre-repeat" (OCR1B) ~650ms delay timer.
+ * the "pre-repeat" (OCR1B) ~500ms delay timer.
  * 
  * Since Clear Timer on Compare (CTC) is set on Timer1, the timer
  * count is hw-reset right before this interrupt fires. Thus this
@@ -239,7 +238,7 @@ ISR(TIM1_COMPA_vect) {
 }
 
 /**
- * Pre-repeat delay (OCR1B) fires when a button has been held for ~650ms.
+ * Pre-repeat delay (OCR1B) fires when a button has been held for ~500ms.
  * This signals that the button repeat events can begin every ~128ms
  * on timer OCR1A.
  */
@@ -266,8 +265,11 @@ ISR(TIM1_COMPB_vect) {
  * Technically this could simply be part of ISR(TIM0_COMPA_vect)
  * (the debounce timer interrupt), but methinks its slightly too
  * heavy. Thus it gets run in the main loop.
+ * 
+ * Returns true if the pre-repeat timer has just been started.
  */
-void post_debounce_update_repeats() {
+bool post_debounce_update_repeats() {
+    bool repeats_begun = false;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         /** Button pins where the buttons are actively pressed */
         uint8_t active_btn_pins = (PINA & BTN_PINS_MASK) ^ (1 << BTPIN_BTSET);
@@ -278,10 +280,12 @@ void post_debounce_update_repeats() {
         uint8_t ev_pressed_btn_pins = active_btn_pins & ~last_active_btn_pins;
 
         if (active_btn_pins ^ last_active_btn_pins) {
+            // Button states changed: Reset repeats.
             // Disable the repeat timer, whether in pre-repeat or repeating.
             stop_repeat_timer();
         }
         if (ev_pressed_btn_pins & ADC_BTN_PINS_MASK) {
+            repeats_begun = true;
             if (ev_pressed_btn_pins & (1 << BTPIN_BTHZ)) {
                 repeat_pin = BTPIN_BTHZ;
             } else {
@@ -292,6 +296,7 @@ void post_debounce_update_repeats() {
 
         last_active_btn_pins = active_btn_pins;
     };  // ATOMIC_BLOCK
+    return repeats_begun;
 }
 
 /**

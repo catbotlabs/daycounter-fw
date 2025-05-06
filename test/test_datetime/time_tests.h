@@ -12,7 +12,6 @@
 #ifndef TEST_TEST_DATETIME_TIME_TESTS_H_
 #define TEST_TEST_DATETIME_TIME_TESTS_H_
 
-void test_time_default_value();
 void test_time_accessors();
 void test_time_field();
 void test_time_fields_min_value();

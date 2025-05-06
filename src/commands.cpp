@@ -44,19 +44,20 @@ void print_time(const Time& time) {
 
 // 'r'
 void cmd_watchdog_reset() {
-    swuart_write(PS("watchdog reset\r\n"));
+    swuart_writeln(PS("watchdog reset"));
     wdt_enable(WDTO_15MS);
     while (true) {}
 }
 
 // 'h'
 void cmd_say_hello() {
-    swuart_write(PS("Hi there!\r\n"));
+    swuart_writeln(PS("Hi there!"));
 }
 
 // 't'
 void cmd_system_test() {
-    swuart_write(PS("system test begin\r\n"));
+    #if 0  // todo: cleanup
+    swuart_writeln(PS("system test begin"));
 
     /** Test the OLED screen by drawing text on it */
     // ssd1306_clearScreen();
@@ -69,34 +70,8 @@ void cmd_system_test() {
         display_glyphs_oe(gl);
     }
     PORTA |= (1 << PA2);  // Set UART pin HIGH after being used for OE.
-    swuart_write(PS("\r\nsystem test completed\r\n"));
-}
-
-// 'a'
-void cmd_settings_read() {
-    swuart_write(PS("Settings READ\r\n"));
-
-    Settings current_settings;
-    if (read_settings_checked(&current_settings)) {
-        swuart_write(PS("Data was invalid! Factory defaults.\r\n"));
-    } else {
-        swuart_write(PS("Data is valid!\r\n"));
-    }
-
-    swuart_write("- Target date: ");
-    print_date(current_settings.target_date); swuart_newline();
-}
-
-// 'b'
-void cmd_settings_write() {
-    swuart_write(PS("Settings WRITE\r\n"));
-
-    Settings new_settings;
-    new_settings.target_date = Date(8, 31, 66);  // Aug 31, XX66
-    uint16_t crc = write_settings(new_settings);
-
-    swuart_write(PS("CRC: "));
-    swuart_print_int(crc); swuart_newline();
+    swuart_writeln(PS("\r\nsystem test completed"));
+    #endif
 }
 
 /**
@@ -106,7 +81,7 @@ void cmd_settings_write() {
  */
 void handle_uart_char(char ch) {
     swuart_mode_tx();
-    swuart_write(PS("\r\n"));
+    swuart_write('\r'); swuart_write('\n');
     switch (ch) {
         case 'r':
           cmd_watchdog_reset();
@@ -116,12 +91,6 @@ void handle_uart_char(char ch) {
           break;
         case 't':
           cmd_system_test();
-          break;
-        case 'a':
-          cmd_settings_read();
-          break;
-        case 'b':
-          cmd_settings_write();
           break;
     }
     swuart_mode_rx();

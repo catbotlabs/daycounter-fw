@@ -31,6 +31,7 @@ enum {
     BF_UARTRX       = 0x02,  /// Byte received on software UART
     BF_BTN_DEBOUNCE = 0x04,  /// Button debounce timer ended
     BF_BTN_REPEAT   = 0x08,  /// Button repeat timer triggered
+    BF_RECOUNT      = 0x10,  /// Recount time unit delta; set display glyphs
 };
 
 enum {

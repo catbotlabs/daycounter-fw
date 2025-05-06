@@ -25,12 +25,11 @@ const uintptr_t SETTINGS_DATA_ADDR = 0x00;
  * It simply encapsulates a Settings structure and a 16-bit CRC.
  */
 struct StoredSettings {
-    Settings data;   // 3 bytes
+    Settings data;   // 5 bytes
     uint16_t crc;    // 2 bytes
 };
 
-static_assert(sizeof(StoredSettings) == 5, "Should be 5 bytes");
-
+static_assert(sizeof(StoredSettings) == 7, "Should be 7 bytes");
 
 /**
  * Calculate 16-bit CRC for data at given address with the given length.
@@ -67,6 +66,13 @@ uint16_t write_settings(const Settings& settings) {
     return package.crc;
 }
 
+/** Set a Settings object to the factory default values. */
+inline void default_settings(Settings* settings) {
+    settings->target_date = Date(1, 1, 50);
+    settings->count_unit = TimeCountUnit::Days;
+    settings->count_direction = TimeCountDirection::Ahead;
+}
+
 /**
  * Loads the stored Settings object from the EEPROM and checks
  * its CRC checksum. If checksum fails, then the settings are
@@ -94,7 +100,7 @@ bool read_settings_checked(Settings* settings) {
         /** Nonzero CRC: Data is invalid! */
 
         // Reset the Settings object to factory defaults.
-        *settings = Settings();
+        default_settings(settings);
         // Write the defaults to EEPROM.
         write_settings(*settings);
         return true;

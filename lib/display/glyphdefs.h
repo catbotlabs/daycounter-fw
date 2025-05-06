@@ -1,6 +1,6 @@
 /**
  * @file lib/display/glyphdefs.h
- * @brief Definitions of the glyph constants.
+ * @brief Definitions of the characters for the numeric display.
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
@@ -34,7 +34,8 @@
  *    bit meaning:     A G F E D C B s
  * 
  * Where "s" is reserved for the DG1 sink enable signal,
- * which is set per-digit in the display draw function.
+ * which must be set per-digit before being passed to the
+ * display draw function.
  * 
  * The glyph is shifted out MSB first, so
  * [Qa, Qb, Qc, ... Qh] on the shift register corresponds to
