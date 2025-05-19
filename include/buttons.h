@@ -26,11 +26,11 @@
 */
 
 /**
- * Button pins:
+ * Button pins (active-low):
  * 
- * - PA0 on PCINT0: BTVT (UP / DOWN)    - Active high, told apart by ADC.
+ * - PA0 on PCINT0: BTVT (UP / DOWN)    - Told apart by ADC, UP is connected to GND.
  * - PA1 on PCINT1: BTSET               - Active low single button.
- * - PA3 on PCINT3: BTHZ (RIGHT / LEFT) - Active high, told apart by ADC.
+ * - PA3 on PCINT3: BTHZ (RIGHT / LEFT) - Told apart by ADC, RIGHT is connected to GND.
  */
 
 /** Button pin definitions */
@@ -52,10 +52,10 @@ static const uint8_t ADC_BTN_PINS_MASK =
 /** Physical button bit position definitions */
 enum {
     BTN_SET,
-    BTN_DOWN,
-    BTN_UP,     // UP must be DOWN + 1
-    BTN_LEFT,
-    BTN_RIGHT,  // RIGHT must be LEFT + 1
+    BTN_DOWN,   // VT Base-level / low button
+    BTN_UP,     // VT Dominant / high button: +1
+    BTN_LEFT,   // HZ Base-level / low button
+    BTN_RIGHT,  // HZ Dominant / high button: +1
 };
 
 /**
