@@ -106,6 +106,10 @@ void setup() {
      *   Standard configuration. Use OE to eliminate ghosting, set oe_mode to 1.
      */
     oe_mode = !((PINA & (1 << PA2)) >> PA2);
+#ifndef ENABLE_SWUART  // TODO: document
+    volatile bool force_oe = OEMODE_OE;
+    oe_mode = force_oe;
+#endif
     if (oe_mode == OEMODE_UART) {
         setup_swuart();
         swuart_mode_tx();
