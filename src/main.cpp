@@ -90,6 +90,8 @@ ISR(WATCHDOG_vect) {
 
 // TODO: hold SET button on startup for some sort of self-test mode?
 
+// TODO: The Date can turn out out-of-bounds on loading if it is invalidly
+// set in the RTC, causing undefined behavior until the Date is set in the UI.
 
 /** 
  * Initial startup routine
