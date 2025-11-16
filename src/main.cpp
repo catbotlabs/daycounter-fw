@@ -42,7 +42,7 @@
 Date running_date;
 Time running_time;
 Settings running_settings;
-bool oe_mode = false;
+bool oe_mode = OEMODE_OE;
 volatile uint8_t busy_flags = 0;
 
 /** Three-byte buffer for the digital display */
@@ -105,7 +105,9 @@ void setup() {
      * IF PA2 is LOW:
      *   Standard configuration. Use OE to eliminate ghosting, set oe_mode to 1.
      */
+#ifdef OEMODE_CHECK
     oe_mode = !((PINA & (1 << PA2)) >> PA2);
+#endif
     if (oe_mode == OEMODE_UART) {
         setup_swuart();
         swuart_mode_tx();
