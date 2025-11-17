@@ -28,9 +28,9 @@
 /**
  * Button pins:
  * 
- * - PA0 on PCINT0: BTVT (UP / DOWN)    - Active high, told apart by ADC.
+ * - PA0 on PCINT0: BTVT (UP / DOWN)    - Active low, told apart by ADC.
  * - PA1 on PCINT1: BTSET               - Active low single button.
- * - PA3 on PCINT3: BTHZ (RIGHT / LEFT) - Active high, told apart by ADC.
+ * - PA3 on PCINT3: BTHZ (RIGHT / LEFT) - Active low, told apart by ADC.
  */
 
 /** Button pin definitions */
@@ -38,8 +38,9 @@ static const uint8_t BTPIN_BTVT  = PA0;
 static const uint8_t BTPIN_BTSET = PA1;
 static const uint8_t BTPIN_BTHZ  = PA3;
 
-// By default, BTVT and BTHZ are LOW and BTSET is HIGH.
-static const uint8_t DEFAULT_BTN_PIN_STATES = (1 << BTPIN_BTSET);
+// In their initial state BTVT, BTHZ, and BTSET are HIGH (active-low).
+static const uint8_t DEFAULT_BTN_PIN_STATES =
+    (1 << BTPIN_BTVT) | (1 << BTPIN_BTSET) | (1 << BTPIN_BTHZ);
 
 /** Mask of all button pins (they're all on Port A) */
 static const uint8_t BTN_PINS_MASK =

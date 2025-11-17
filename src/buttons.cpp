@@ -39,10 +39,13 @@ const uint8_t TCCR1B_RUNNING_NO_CTC = (1 << CS12) | (1 << CS10);
 
 /**
  * @brief Threshold for determining which button is pressed by
- * the button signal's ADC reading. If the reading is above this
- * value, then the "high" button is pressed.
+ * the button signal's ADC reading. If the reading is below this
+ * value, then the "dominant"/"high" button is pressed.
+ *
+ * TODO: Hone in this value. Right now it's arbitrary. Some
+ * theory should be done to prove this is a good value.
  */
-const uint16_t BUTTON_ADC_THRESHOLD = 950;
+const uint16_t BUTTON_ADC_THRESHOLD = 70;
 
 
 /**
@@ -121,8 +124,8 @@ TCNT1 count: 0x0000 |########## A #################### B ##########| 0xFFFF
  * @note: This should be called with interrupts disabled.
  */
 void setup_buttons() {
-    /** Set the pullup resistor on BTSET */
-    PORTA |= (1 << PA1);
+    /** Set the pullup resistor on BTVT, BTSET, and BTHZ */
+    PORTA |= (1 << PA0) | (1 << PA1) | (1 << PA3);
 
     /** 
      * Enable ADC and set prescaler to F_CPU/64.
@@ -272,7 +275,8 @@ bool post_debounce_update_repeats() {
     bool repeats_begun = false;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         /** Button pins where the buttons are actively pressed */
-        uint8_t active_btn_pins = (PINA & BTN_PINS_MASK) ^ (1 << BTPIN_BTSET);
+        /** Invert because it's active-low */
+        uint8_t active_btn_pins = ~(PINA & BTN_PINS_MASK);
         /** Previous value of active_btn_pins */
         static uint8_t last_active_btn_pins = 0;
 
@@ -311,7 +315,7 @@ bool adc_button_differentiate(uint8_t channel) {
     ADMUX = channel;        // Select ADC channel. (REFS is default: VCC)
     ADCSRA |= (1 << ADSC);  // Start ADC conversion
     while (ADCSRA & (1 << ADSC)) {}   // Wait for the conversion to complete
-    if (ADC > BUTTON_ADC_THRESHOLD) {
+    if (ADC < BUTTON_ADC_THRESHOLD) {
         return true;  // The high, dominant button is pressed (Right or Up)
     }
     return false;     // The lower, weaker button is pressed (Left or Down)
@@ -335,16 +339,16 @@ uint8_t get_pressed_button_flags() {
     uint8_t pina = PINA;  /** Read the pin states */
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        /** Account for BTN_LEFT and BTN_RIGHT */
-        if (pina & (1 << BTPIN_BTHZ)) {
+        /** Account for BTN_LEFT and BTN_RIGHT (active low) */
+        if (!(pina & (1 << BTPIN_BTHZ))) {
             /** Left OR Right is pressed, use the ADC to determine which. */
             /** Note that if both are pressed, Right will dominate. */
             bool is_right = adc_button_differentiate(BTPIN_BTHZ);
             pressed_buttons |= (1 << (BTN_LEFT + is_right));
         }
 
-        /** Account for BTN_DOWN and BTN_UP */
-        if (pina & (1 << BTPIN_BTVT)) {
+        /** Account for BTN_DOWN and BTN_UP (active low) */
+        if (!(pina & (1 << BTPIN_BTVT))) {
             /** Down OR Up is pressed, use the ADC to determine which. */
             /** Note that if both are pressed, Up will dominate. */
             bool is_up = adc_button_differentiate(BTPIN_BTVT);
