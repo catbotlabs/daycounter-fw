@@ -31,7 +31,7 @@
  * Each glyph is packed in a uint8_t as such:
  * 
  *    bit position:   [7 6 5 4 3 2 1 0]
- *    bit meaning:     A G F E D C B s
+ *    bit meaning:     G F E D C B A s
  * 
  * Where "s" is reserved for the DG1 sink enable signal,
  * which must be set per-digit before being passed to the
@@ -39,24 +39,25 @@
  * 
  * The glyph is shifted out MSB first, so
  * [Qa, Qb, Qc, ... Qh] on the shift register corresponds to
- * [s,  B,  C,  ... A ] in our glyph packing.
+ * [s,  A,  B,  ... G ] in our glyph packing.
  * 
  */
 
 // Glyphs:
-//      0bAGFEDCBs
-//  '0' 0b10111110
-//  '1' 0b00000110
-//  '2' 0b11011010
-//  '3' 0b11001110
-//  '4' 0b01100110
-//  '5' 0b11101100
-//  '6' 0b11111100
-//  '7' 0b10000110
+//      0bGFEDCBAs
+
+//  '0' 0b01111110
+//  '1' 0b00001100
+//  '2' 0b10110110
+//  '3' 0b10011110
+//  '4' 0b11001100
+//  '5' 0b11011010
+//  '6' 0b11111010
+//  '7' 0b00001110
 //  '8' 0b11111110
-//  '9' 0b11101110
+//  '9' 0b11011110
 //  ' ' 0b00000000
-//  '-' 0b01000000
+//  '-' 0b10000000
 
 /**
  * These are the seven-segment glyphs for integers 0-9,
@@ -64,12 +65,12 @@
  * 
  * (For instance, DIGIT_GLYPHS[3] is the glyph for the number '3').
  */
-static const uint8_t PROGMEM DIGIT_GLYPHS[10] = {0xbe, 0x06, 0xda, 0xce,
-                                                 0x66, 0xec, 0xfc, 0x86,
-                                                 0xfe, 0xee};
+static const uint8_t PROGMEM DIGIT_GLYPHS[10] = {0x7e, 0x0c, 0xb6, 0x9e,
+                                                 0xcc, 0xda, 0xfa, 0x0e,
+                                                 0xfe, 0xde};
 
 
-static const uint8_t GLYPH_DASH = 0x40;
+static const uint8_t GLYPH_DASH = 0x80;
 static const uint8_t GLYPH_NONE = 0x00;
 
 #endif  // LIB_DISPLAY_GLYPHDEFS_H_
