@@ -73,9 +73,12 @@ const uint8_t TCCR1B_RUNNING_NO_CTC = (1 << CS12) | (1 << CS10);
 /**
  * @brief Threshold for determining which button is pressed by
  * the button signal's ADC reading. If the reading is below this
- * value, then we count the "dominant" button as pressed.
+ * value, then the "dominant"/"high" button is pressed.
+ *
+ * TODO: Hone in this value. Right now it's arbitrary. Some
+ * theory should be done to prove this is a good value.
  */
-const uint16_t BUTTON_ADC_THRESHOLD = 9;
+const uint16_t BUTTON_ADC_THRESHOLD = 70;
 
 
 /**
@@ -307,6 +310,7 @@ bool post_debounce_update_repeats() {
     bool repeats_begun = false;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         /** Button pins where the buttons are actively pressed */
+        /** Invert because it's active-low */
         uint8_t active_btn_pins = ~(PINA & BTN_PINS_MASK);
         /** Previous value of active_btn_pins */
         static uint8_t last_active_btn_pins = 0;
