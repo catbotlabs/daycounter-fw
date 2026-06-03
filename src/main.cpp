@@ -114,7 +114,7 @@ void setup() {
         setup_swuart();
         swuart_mode_tx();
         swuart_writeln(PS("\r\n== CatBotLabs DayCounter K001 ==\r\n"
-                       "built " __DATE__ ", " __TIME__));
+                       "compiled " __DATE__ ", " __TIME__));
     } else if (oe_mode == OEMODE_OE) {
         DDRA |= (1 << PA2);   // OE pin: output
         PORTA |= (1 << PA2);  // OE pin: high (disable display)
