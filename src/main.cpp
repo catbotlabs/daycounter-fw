@@ -185,6 +185,29 @@ void setup() {
     }
 
     rtc_read_datetime(&running_date, &running_time);
+
+
+    /**
+     * The RTC initial value date (MM DD YY) is
+     * 01 01 01 ONLY IF the RTC powers on from the primary power.
+     *
+     * But it starts at 00 00 00 if the RTC battery is inserted
+     * while the circuit is off.
+     *
+     * Zero is an illegal value for Month/Day for both the RTC
+     * and this codebase. So we fix it here.
+     */
+    if (running_date.day() == 0 || running_date.month() == 0) {
+        if (running_date.day() == 0) {
+            running_date.day() = 1;
+        }
+        if (running_date.month() == 0) {
+            running_date.month() = 1;
+        }
+        rtc_write_datetime(running_date, running_time);
+    }
+
+
     busy_flags |= BF_RECOUNT;  // We'll need to recount/set glyphs.
 
     swuart_writeln(PS("ready."));

@@ -19,6 +19,7 @@
 #include "datetime.h"
 #include "rtc.h"
 #include "buttons.h"
+#include "globals.h"
 #include "settings.h"
 
 /**
@@ -74,6 +75,28 @@ void cmd_system_test() {
     #endif
 }
 
+// 'n'
+void cmd_print_time_now() {
+# if 0
+    swuart_writeln(PS("time: "));
+    print_time(running_time);
+
+    /* Malfunction-safe date print: */
+    swuart_writeln(PS("\r\ndate: mm dd yy"));
+    // mm dd yy
+    char buffer[10];
+    buffer[2] = ' ';
+    buffer[5] = ' ';
+    buffer[8] = '\r';
+    buffer[9] = '\n';
+
+    two_digit_itoa(buffer, running_date.month());
+    two_digit_itoa(buffer+3, running_date.day());
+    two_digit_itoa(buffer+6, running_date.year());
+    swuart_write(buffer);
+#endif
+}
+
 /**
  * Process a single character received from the software UART interface.
  * 
@@ -92,6 +115,8 @@ void handle_uart_char(char ch) {
         case 't':
           cmd_system_test();
           break;
+//        case 'n':
+//          cmd_print_time_now();
     }
     swuart_mode_rx();
 }
