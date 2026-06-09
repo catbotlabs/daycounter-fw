@@ -62,11 +62,11 @@ const uint8_t TCCR1B_RUNNING_NO_CTC = (1 << CS12) | (1 << CS10);
  * R2 is the GPIO's internal pullup, between 20k and 50k.
  *
  * When BT1 is pressed, then the GPIO is connected
- * directly to GND and the voltage is 0.0V and the ADC
- * should read 0.
+ * directly to GND. Ideally, the voltage should be 0.0V
+ * and the ADC should read 0.
  *
  * When only BT2 is pressed, with 5% tolerance on R2, then:
- *   GPIO voltage is between 0.27V and 0.66V.
+ *   GPIO voltage is between 0.27V and 0.66V (~0.45V typical).
  *   ADC reading is between 83 and 205.
  */
 
@@ -75,8 +75,10 @@ const uint8_t TCCR1B_RUNNING_NO_CTC = (1 << CS12) | (1 << CS10);
  * the button signal's ADC reading. If the reading is below this
  * value, then the "dominant"/"high" button is pressed.
  *
- * TODO: Hone in this value. Right now it's arbitrary. Some
- * theory should be done to prove this is a good value.
+ * Note: The ADC values are 10-bit, ranging from 0 to 1023 for
+ * a voltage range 0V to 3.3V.
+ *
+ * For a value of 70, the voltage theshold is 0.226V.
  */
 const uint16_t BUTTON_ADC_THRESHOLD = 70;
 

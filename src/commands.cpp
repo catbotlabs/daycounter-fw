@@ -22,12 +22,52 @@
 #include "globals.h"
 #include "settings.h"
 
+
+/**
+ * This firmware does not have much free flash space, especially
+ * when built in debug UART mode. These functions demonstrate
+ * how to do basic debug tasks, but they use precious space. If
+ * you were to implement custom functionality, you would want to
+ * disable code here to free up space.
+ */
+
+
+
+/**
+ * Set the display to "888" and draw text
+ * on the OLED screen.
+ *
+ * This can be called on startup by holding the SET button
+ * during power-up.
+ *
+ */
+void test_screen_and_display() {
+    swuart_writeln(PS("test begin"));
+
+    /** Test the OLED screen by drawing text on it */
+    ssd1306_clearScreen();
+    ssd1306_printFixedN(0, 1, "OLED screen testing.", STYLE_NORMAL, 1);
+
+    /** Test the display by displaying all 8's */
+    // DDRA for PA2 is already set as output since if are in UART TX mode.
+    for (uint16_t i = 30000; i; i++) {
+        DisplayGlyphs gl{DIGIT_GLYPHS[8], (uint8_t)(DIGIT_GLYPHS[8]|1), DIGIT_GLYPHS[8]};
+        display_glyphs_oe(gl);
+    }
+    ssd1306_clearScreen();
+
+    PORTA |= (1 << PA2);  // Set UART pin HIGH after being used for OE.
+
+    swuart_writeln(PS("done"));
+}
+
+
+
 /**
  * Print a Date object to the software UART.
  */
 void print_date(const Date& date) {
     char date_str[11];
-    date_str[10] = '\0';
     generate_date_string(date_str, date);
     swuart_write(date_str);
 }
@@ -37,7 +77,6 @@ void print_date(const Date& date) {
  */
 void print_time(const Time& time) {
     char time_str[9];
-    time_str[8] = '\0';
     generate_time_string(time_str, time);
     swuart_write(time_str);
 }
@@ -45,41 +84,31 @@ void print_time(const Time& time) {
 
 // 'r'
 void cmd_watchdog_reset() {
-    swuart_writeln(PS("watchdog reset"));
+    swuart_writeln(PS("wd reset"));
     wdt_enable(WDTO_15MS);
     while (true) {}
 }
 
 // 'h'
 void cmd_say_hello() {
-    swuart_writeln(PS("Hi there!"));
-}
-
-// 't'
-void cmd_system_test() {
-    #if 0  // todo: cleanup
-    swuart_writeln(PS("system test begin"));
-
-    /** Test the OLED screen by drawing text on it */
-    // ssd1306_clearScreen();
-    // ssd1306_printFixedN(0, 1, "OLED screen test", STYLE_NORMAL, 1);
-
-    /** Test the display by displaying all 8's */
-    // DDRA for PA2 is set as output since we are in UART TX mode.
-    for (uint16_t i = 30000; i != 0; i++) {
-        DisplayGlyphs gl{DIGIT_GLYPHS[8], DIGIT_GLYPHS[8]|1, DIGIT_GLYPHS[8]};
-        display_glyphs_oe(gl);
-    }
-    PORTA |= (1 << PA2);  // Set UART pin HIGH after being used for OE.
-    swuart_writeln(PS("\r\nsystem test completed"));
-    #endif
+    swuart_writeln(PS("Hi"));
 }
 
 // 'n'
 void cmd_print_time_now() {
-# if 0
-    swuart_writeln(PS("time: "));
-    print_time(running_time);
+    swuart_writeln(PS("rtc now"));
+
+    char str[21];
+    generate_date_string(str, running_date);
+    str[10] = ' ';   // seperating space
+    generate_time_string(str + 11, running_time);
+    swuart_write(str);
+    swuart_write('\r'); swuart_write('\n');
+
+#if 0
+    // The generate_date_string will generate buggy
+    // text if the date field numbers are out of range.
+    // This implementation is extra safe:
 
     /* Malfunction-safe date print: */
     swuart_writeln(PS("\r\ndate: mm dd yy"));
@@ -112,11 +141,8 @@ void handle_uart_char(char ch) {
         case 'h':
           cmd_say_hello();
           break;
-        case 't':
-          cmd_system_test();
-          break;
-//        case 'n':
-//          cmd_print_time_now();
+        case 'n':
+          cmd_print_time_now();
     }
     swuart_mode_rx();
 }

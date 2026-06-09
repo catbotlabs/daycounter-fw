@@ -13,6 +13,13 @@
 #ifndef INCLUDE_COMMANDS_H_
 #define INCLUDE_COMMANDS_H_
 
+
+/**
+ * Expose this so we can run
+ * it if the SET button is held initially.
+ */
+void test_screen_and_display();
+
 void handle_uart_char(char ch);
 
 #endif  // INCLUDE_COMMANDS_H_

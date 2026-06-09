@@ -88,11 +88,6 @@ ISR(WATCHDOG_vect) {
     fatal_infinite_display_loop(PS("I2C bus failure! Check OLED wiring."));
 }
 
-// TODO: hold SET button on startup for some sort of self-test mode?
-
-// TODO: The Date can turn out out-of-bounds on loading if it is invalidly
-// set in the RTC, causing undefined behavior until the Date is set in the UI.
-
 /** 
  * Initial startup routine
  */
@@ -155,6 +150,12 @@ void setup() {
     ssd1306_128x32_i2c_init();
     ssd1306_clearScreen();
     ssd1306_setFixedFont(ssd1306xled_font6x8);
+
+    /** Check if the SET button is pressed on startup. */
+    /** If it is, do a quick demo of the OLED and number display. */
+    if (!(PINA & (1 << PA1))) {
+        test_screen_and_display();
+    }
 
     /** Setup PPS interrupts */
     PORTB |= (1 << PB2);  // enable pullup resistor (MFP pin is open-drain)
