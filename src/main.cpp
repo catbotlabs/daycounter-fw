@@ -82,9 +82,9 @@ ISR(INT0_vect) {
  */
 ISR(WATCHDOG_vect) {
     wdt_disable();
-    glyphs[2] = 0x30;                // 'I'
+    glyphs[2] = 0x60;                // 'I'
     glyphs[1] = DIGIT_GLYPHS[2]|1;   // '2'
-    glyphs[0] = 0xb8;                // 'C'
+    glyphs[0] = 0x72;                // 'C'
     fatal_infinite_display_loop(PS("I2C bus failure! Check OLED wiring."));
 }
 
@@ -137,8 +137,8 @@ void setup() {
 
     if (oled_fail) {
         glyphs[2] = DIGIT_GLYPHS[5];  // 'S'
-        glyphs[1] = 0xb9;             // 'c'
-        glyphs[0] = 0x50;             // 'r'
+        glyphs[1] = 0x73;             // 'C'
+        glyphs[0] = 0xa0;             // 'r'
         fatal_infinite_display_loop(
             PS("OLED comm fail"));
     }
@@ -168,9 +168,9 @@ void setup() {
         /** Failed to communicate with RTC */
         ssd1306_clearScreen();
         ssd1306_printFixedN(0, 20, "check RTC", STYLE_NORMAL, 1);
-        glyphs[2] = 0x50;  // 'r'
-        glyphs[1] = 0x79;  // 't'
-        glyphs[0] = 0x58;  // 'c'
+        glyphs[2] = 0xa0;  // 'r'
+        glyphs[1] = 0xf1;  // 't'
+        glyphs[0] = 0xb0;  // 'c'
         fatal_infinite_display_loop(PS("RTC comm fail"));
         break;
       case RTCInitResult::Unset:
