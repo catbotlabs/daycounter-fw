@@ -76,7 +76,7 @@ This diagram shows how we are using the GPIO's on the ATtiny84.
 
 We were rather constrained by GPIO count, so we had to come up with some creative ways to fit multiple functions on one GPIO in order to use only 11 GPIOs.
 
-The Reset pin is not used as GPIO pin because it significantly complicates the upload process.
+The Reset pin is not used as a GPIO pin because it significantly complicates the upload process.
 
 ```
 
@@ -92,12 +92,10 @@ O/I   SIG    PIN       PIN    SIG      I/O
 
 ```
 
-TODO: Do the math and estimate what the "weaker" shared button voltage is
-
 * BTVT - PA0: Button signal shared by the two vertical arrow buttons, Down and Up.
 If either button is pressed, the signal is read as low. The ADC is used to
 tell which of the two buttons is pressed. If Up is pressed, voltage is ~0V,
-or if Down is pressed, voltage is a little higher. If both are pressed,
+or if Down is pressed, voltage is about 0.45V. If both are pressed,
 the Up button will "dominate" (signal at ~0V).
 The PCINT interrupt signals when a button is pressed.
 
@@ -113,18 +111,18 @@ When used as a UART pin, this is a shared TX/RX pin.
 * BTHZ - PA3: Button signal shared by the two horizontal arrow buttons, Left and Right.
 If either button is pressed, the signal is read as low. The ADC is used to
 tell which of the two buttons is pressed. If Right is pressed, voltage is ~0V,
-or if Left is pressed, voltage is a little higher. If both are pressed,
+or if Left is pressed, voltage is about 0.45V. If both are pressed,
 the Right button will "dominate" (signal at ~0V).
 The PCINT interrupt signals when a button is pressed.
 
-* SCL - PA4: SCL pin for the I2C bus shared with the RTC and the OLED screen.
+* SCL - PA4: SCL signal for the I2C bus shared with the RTC and the OLED screen.
 
-* SDA - PA6: SDA pin for the I2C bus shared with the RTC and the OLED screen.
+* SDA - PA6: SDA signal for the I2C bus shared with the RTC and the OLED screen.
 
-* DG0 - PA5: Digital display digit 0 (ones' place) sink enable pin. When DG0 is high, then the
-shift register output is sunk through the ones' place common anode in the digital display.
-Note that the DG1 (tens' place) signal works the same way, but it is one of the shift register outputs.
-If both DG0 and DG1 are low, then DG2 (hundreds' place) is sunk.
+* DG0 - PA5: Digital display digit 0 (ones place) sink enable pin. When DG0 is high, then the
+shift register output is sunk through the ones place common anode in the digital display.
+Note that the DG1 (tens place) signal works the same way, but it is one of the shift register outputs.
+If both DG0 and DG1 are low, then DG2 (hundreds place) is sunk.
 
 * SRC - PB0: Shift Register Clock for the digital display shift register.
 
@@ -138,7 +136,7 @@ then keeps track of time using only the PPS signal.
 
 ### Code standards
 
-The C++ code largely follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Code in the `src/`, `include/`, `lib/`, and `test/` directories is linted using [cpplint](https://github.com/cpplint/cpplint). See  the `tools/lint.sh` helper script.
+The C++ code largely follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Code in the `src/`, `include/`, `lib/`, and `test/` directories is linted using [cpplint](https://github.com/cpplint/cpplint). See the `tools/lint.sh` helper script.
 
 ### License
 
@@ -146,4 +144,4 @@ This firmware and its source code is free and open source, under the terms of th
 
 Note that the `src/uart.cpp` file has some embedded BSD 2-Clause License code from [attiny13-software-uart-library](https://github.com/lpodkalicki/attiny13-software-uart-library) by lpodkalicki.
 
-Copyright (c) 2025, Winston Malinowski
+Copyright (c) 2026, Winston Malinowski
