@@ -1,6 +1,6 @@
-# DayCounter K001 firmware
+# DayCounter K001 Firmware
 
-Source code for the firmware on the ATtiny84 that runs at the heart of the CatBotLabs K001 DayCounter Kit.
+Firmware for the ATtiny84 at the heart of the CatBotLabs K001 DayCounter Kit.
 
 The DayCounter has a three-digit numeric display which displays the number of days until a set target date. This firmware makes the ATtiny84 calculate this number and then operate as a matrix driver to display it on the numeric display. The firmware also lets the user change the Target Date, RTC clock, and the Count Unit / Count Direction using a minimal-frustration 5-button OLED user interface.
 
@@ -12,7 +12,7 @@ The code ties these hardware elements together (internal name in bold):
 * **RTC**: Battery-backed RTC (MCP7940N) on same I2C bus as the OLED screen.
 * **Storage**: The ATtiny84's internal EEPROM is used for settings retention.
 
-* **SW UART**: Optional one-wire software debug UART, 57600 baud.
+* **SW UART**: Optional one-wire software debug UART, 57600 baud. **Note: The debug UART interferes with the numeric display.** The UART pin is shared with the Output Enable (OE) pin of the display driver. UART signals are typically pulled high in the idle state. When the OE pin is pulled high, the shift register stops sourcing current to the segments.
 
 ### Usage
 
