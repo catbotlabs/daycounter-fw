@@ -4,7 +4,7 @@
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
- * Copyright (c) 2025, Winston Malinowski
+ * Copyright (c) 2025, CatBotLabs
  * This source code is provided under the terms of the MIT License.
  * (See the LICENSE file)
  *

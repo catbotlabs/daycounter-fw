@@ -144,4 +144,4 @@ This firmware and its source code is free and open source, under the terms of th
 
 Note that the `src/uart.cpp` file has some embedded BSD 2-Clause License code from [attiny13-software-uart-library](https://github.com/lpodkalicki/attiny13-software-uart-library) by lpodkalicki.
 
-Copyright (c) 2026, Winston Malinowski
+Copyright (c) 2026, CatBotLabs

@@ -5,7 +5,7 @@
  * 
  * Part of the CatBotLabs K001 Day Counter firmware.
  * 
- * Copyright (c) 2025, Winston Malinowski
+ * Copyright (c) 2025, CatBotLabs
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the “Software”), to deal in
