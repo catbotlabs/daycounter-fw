@@ -60,7 +60,7 @@ pio test -e test_native_max
 
 #### External dependencies
 
-* [`ssd1306`](https://github.com/cbl-winston/ssd1306) (CatBotLabs fork): Ultra lightweight SSD1306 driver library. The fork lets us disable unused features, saving valuable program space.
+* [`ssd1306`](https://github.com/catbotlabs/ssd1306) (CatBotLabs fork): Ultra lightweight SSD1306 driver library. The fork lets us disable unused features, saving valuable program space.
 
 * [`tiny-i2c`](https://github.com/technoblogy/tiny-i2c): Ultra lightweight AVR I2C implementation.
 
